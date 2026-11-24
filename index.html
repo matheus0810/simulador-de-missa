@@ -399,7 +399,7 @@ const qc=new Map();
 function quant(){const im=cx.getImageData(0,0,LW,LH),d=im.data;for(let i=0;i<d.length;i+=4){const key=(d[i]>>3)<<10|(d[i+1]>>3)<<5|(d[i+2]>>3);let c=qc.get(key);if(!c){let best=1e9;for(const p of PAL){const dr=d[i]-p[0],dg=d[i+1]-p[1],db=d[i+2]-p[2],e=dr*dr*.3+dg*dg*.59+db*db*.11;if(e<best){best=e;c=p;}}qc.set(key,c);}d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;}cx.putImageData(im,0,0);}
 const ro=new ResizeObserver(fit);ro.observe(cv);
 const POS={frente:{x:480,y:404,s:1},lav:{x:598,y:406,s:1.02},sac:{x:44,y:398,s:.92},cadeira:{x:165,y:398,s:.92},ambao:{x:796,y:380,s:.92},vp:{x:480,y:362,s:1},ao:{x:480,y:394,s:1}};
-const G={thur:[[-2,-100],[10,-94]],wash:[[12,-80],[22,-80]],consume:[[-4,-118],[4,-118]],drink:[[-6,-110],[6,-110]],kiss:[[-20,-92],[20,-92]],joined:[[-4,-82],[4,-82]],orans:[[-44,-114],[44,-114]],extend:[[-16,-74],[16,-74]],elevHost:[[-6,-152],[6,-152]],elevChalice:[[-7,-148],[7,-148]],holdChalice:[[-7,-96],[7,-96]],elevBoth:[[-24,-136],[24,-136]],holdHost:[[-6,-98],[6,-98]],offer:[[-13,-96],[13,-96]],sign:[[-4,-84],[34,-142]],fraction:[[-11,-96],[11,-96]]};
+const G={thur:[[-2,-100],[10,-94]],wash:[[12,-80],[22,-80]],consume:[[-4,-118],[4,-118]],drink:[[-6,-110],[6,-110]],kiss:[[-20,-92],[20,-92]],joined:[[-4,-82],[4,-82]],orans:[[-44,-114],[44,-114]],extend:[[-16,-74],[16,-74]],elevHost:[[-6,-152],[6,-152]],elevChalice:[[-7,-148],[7,-148]],holdChalice:[[-7,-96],[7,-96]],elevBoth:[[-24,-136],[24,-136]],holdHost:[[-6,-98],[6,-98]],offer:[[-13,-96],[13,-96]],sign:[[-4,-84],[30,-134]],fraction:[[-11,-96],[11,-96]]};
 const P={x:165,y:398,s:.92,turn:0,h:[[-4,-82],[4,-82]]};
 const crowd=Array.from({length:14},(_,n)=>({row:n<7?0:1,x:(n%7)*140+(n<7?40:105)+(n*37%23),c:['#2a2230','#30262a','#262b33','#33282e'][n%4],lag:.04+(n*13%7)/120,off:22}));
 const OFF={stand:0,sit:22,kneel:34};
@@ -480,11 +480,11 @@ function priest(t){
  const high=P.h[0][1]<-125||P.h[1][1]<-125||Math.abs(P.h[0][0])>30;
  const AG=[0,1].map(n=>{const sh=n?21:-21,[hx,hy]=P.h[n],f=.8;return{sh,hx,hy,ex:(sh+hx)/2+(sh<0?-8:8),ey:(-104+hy)/2+6,Ex:sh+(hx-sh)*f,Ey:-104+(hy+104)*f,sd:sh<0?-1:1};});
  const gothic=C&&!rom;
- const arms=()=>{for(const [n,sh] of [[0,-21],[1,21]]){const [hx,hy]=P.h[n],ex=(sh+hx)/2+(sh<0?-8:8),ey=(-104+hy)/2+6;
+ const arms=(part='all')=>{for(const [n,sh] of [[0,-21],[1,21]]){const [hx,hy]=P.h[n],ex=(sh+hx)/2+(sh<0?-8:8),ey=(-104+hy)/2+6;
   cx.lineCap='round';
-  if(gothic){const g=AG[n];cx.strokeStyle='#f3efe6';cx.lineWidth=9;cx.beginPath();cx.moveTo(g.Ex,g.Ey);cx.lineTo(hx,hy);cx.stroke();}
-  else{cx.strokeStyle='#f3efe6';cx.lineWidth=10;cx.beginPath();cx.moveTo(sh,-104);cx.quadraticCurveTo(ex,ey,hx,hy);cx.stroke();}
-  cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(hx,hy,5,0,7);cx.fill();}
+  if(part!=='hands'){cx.strokeStyle='#f3efe6';cx.lineWidth=gothic?9:10;cx.beginPath();cx.moveTo(sh,-104);cx.quadraticCurveTo(ex,ey,hx,hy);cx.stroke();}
+  if(part!=='sleeves'){cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(hx,hy,5,0,7);cx.fill();}}
+  if(part==='sleeves')return;
   const m=[(P.h[0][0]+P.h[1][0])/2,(P.h[0][1]+P.h[1][1])/2];
   if(st.g==='elevHost'||st.g==='holdHost')host(m[0],m[1]-10);
   if(st.g==='offer'){paten(m[0],m[1]-3);host(m[0],m[1]-7,6);}
@@ -516,6 +516,7 @@ function priest(t){
   if(isBack){cx.fillStyle=GD;cx.fillRect(-22,-98,44,11);cx.fillStyle=GK;cx.fillRect(-19,-93.5,38,3);}
   else{cx.fillStyle=GK;cx.fillRect(-4,-98,8,2);}
  }else{ // casula gótica: um só tecido, longo, caindo reto dos ombros e drapeado nos antebraços
+  if(!isBack)arms('sleeves');
   const HEM=-15,[L,R]=AG;
   const up=g=>Math.abs(g.Ex)>Math.abs(g.ex)+2||g.hy<-104,O=g=>up(g)?{x:g.Ex+g.sd*2,y:g.Ey-2}:{x:g.ex+g.sd*3,y:g.ey},ctl=(g,o)=>up(g)?[g.ex+g.sd*2,g.ey-10]:[g.sh+g.sd*2,(-106+o.y)/2];
   const lift=g=>clamp((-g.hy-96)/40),cr=g=>({x:g.sd*31,y:HEM-2-lift(g)*14});
@@ -540,7 +541,7 @@ function priest(t){
  cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(0,-125,13,0,7);cx.fill();
  cx.fillStyle='#4a3426';cx.beginPath();if(isBack)cx.arc(0,-126,13.5,0,7);else cx.arc(0,-129,13.5,Math.PI*1.05,Math.PI*1.95);cx.fill();
  if(!isBack){cx.fillStyle='#2a1d14';cx.fillRect(-6,-126,3,3);cx.fillRect(3,-126,3,3);}
- if(!isBack||high)arms();
+ if(!isBack||high)arms(gothic&&!isBack?'hands':'all');
  if(P.thur&&!isBack){const c=censer(P.h[1][0],P.h[1][1],.9,t);emitAt(c);}
  cx.restore();cx.restore();
 }
