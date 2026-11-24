@@ -517,7 +517,7 @@ function priest(t){
   else{cx.fillStyle=GK;cx.fillRect(-4,-98,8,2);}
  }else{ // casula gótica: um só tecido, longo, caindo reto dos ombros e drapeado nos antebraços
   const HEM=-15,[L,R]=AG;
-  const up=g=>Math.abs(g.Ex)>Math.abs(g.ex)+2,O=g=>up(g)?{x:g.Ex+g.sd*2,y:g.Ey-2}:{x:g.ex+g.sd*3,y:g.ey},ctl=(g,o)=>up(g)?[g.ex+g.sd*2,g.ey-10]:[g.sh+g.sd*2,(-106+o.y)/2];
+  const up=g=>Math.abs(g.Ex)>Math.abs(g.ex)+2||g.hy<-104,O=g=>up(g)?{x:g.Ex+g.sd*2,y:g.Ey-2}:{x:g.ex+g.sd*3,y:g.ey},ctl=(g,o)=>up(g)?[g.ex+g.sd*2,g.ey-10]:[g.sh+g.sd*2,(-106+o.y)/2];
   const lift=g=>clamp((-g.hy-96)/40),cr=g=>({x:g.sd*31,y:HEM-2-lift(g)*14});
   const side=(g,down)=>{const o=O(g),c=cr(g);if(down){cx.quadraticCurveTo(...ctl(g,o),o.x,o.y);cx.quadraticCurveTo(o.x,c.y-4,c.x,c.y);}
    else{cx.quadraticCurveTo(o.x,c.y-4,o.x,o.y);cx.quadraticCurveTo(...ctl(g,o),g.sh+g.sd*2,-106);}};
