@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Missa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* VOICE: reverente, mas com o charme de um cartucho antigo
+   IDEA: um RPG de 8 bits — tela de jogo com caixa de diálogo azul, balões de fala
+   PICTURE: presbitério em pixel art, padre com contorno de sprite, scanlines
+   COLOUR and TYPE: noite azul-marinho, branco, vermelho e ouro; Press Start 2P + VT323
+   LAYOUT: tela cheia; cena 16:9 em cima, diálogo embaixo, tudo na mesma moldura */
+:root{color-scheme:dark;--bg:#000;--paper:#16165a;--ink:#f4f0e6;--soft:#a9a6c8;--red:#ff6060;--gold:#ffd84a;--green:#5ad46a;--line:#f4f0e6}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:22px/1.2 VT323,monospace;overflow:hidden}
+body{display:grid;place-items:center;height:100dvh}
+.game{position:relative;width:min(100vw,calc(100dvh * 16 / 9));aspect-ratio:16/9;overflow:hidden;container-type:inline-size;background:#000;box-shadow:inset 0 0 0 4px var(--line)}
+.game::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(#0000 0 2px,#0003 2px 3px);z-index:4}
+canvas{display:block;width:100%;aspect-ratio:16/9;image-rendering:pixelated}
+.hud{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;padding:6px 8px;font:clamp(8px,1cqw,11px)/1 "Press Start 2P",monospace;background:#000a;z-index:2}
+.bar{flex:1;height:8px;background:#333;border:2px solid var(--ink)}.bar i{display:block;height:100%;width:0;background:var(--gold)}
+.hb{font:inherit;background:none;color:var(--ink);border:2px solid var(--ink);min-height:30px;min-width:30px;padding:0 6px;cursor:pointer}
+.hb[aria-pressed=false]{color:var(--soft);border-color:var(--soft);text-decoration:line-through}.hb[hidden]{display:none}
+#turn{position:absolute;right:10px;top:calc(clamp(8px,1cqw,11px) + 32px);font:clamp(9px,1.1cqw,12px)/1 "Press Start 2P",monospace;background:var(--gold);color:#000;border:3px solid #000;box-shadow:3px 3px 0 #000;min-height:44px;padding:0 12px;cursor:pointer;z-index:2}
+#turn:disabled{opacity:.45;cursor:default}#turn[hidden]{display:none}
+#turn:active:not(:disabled){transform:translate(3px,3px);box-shadow:none}
+.bub{position:absolute;z-index:1;max-width:min(52%,560px);background:#fff;color:#111;border:3px solid #000;box-shadow:4px 4px 0 #0008;padding:.35em .6em;font:clamp(14px,1.75cqw,23px)/1.15 VT323,monospace;transform:translate(-50%,-100%);pointer-events:none}
+.bub::after{content:"";position:absolute;left:calc(50% - 8px);bottom:-14px;border:8px solid transparent;border-top:8px solid #000}
+.bub i{color:#555}
+#pb{transition:opacity .2s}
+#vb{left:4%;bottom:20%;transform:none;background:#f3e7c8;max-width:min(44%,480px)}
+#vb::after{left:24px}
+#vb[style*="right: 4%"]::after{left:auto;right:24px}
+.bub[hidden]{display:none}
+.bub b{display:block;font:clamp(7px,.8cqw,10px)/1.6 "Press Start 2P",monospace;color:#b3121f}
+.dlg{position:absolute;z-index:3;left:2%;right:2%;bottom:2.5%;max-height:30%;overflow:auto;background:#16165aeb;border:4px solid var(--line);box-shadow:0 0 0 3px #000,6px 6px 0 3px #0008;padding:8px 12px 10px;font-size:clamp(13px,1.3cqw,20px)}
+#opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:6px}
+#opts .opt{margin:0;border-color:#f4f0e655;align-items:flex-start}
+.dlg.answered #opts .opt:not(.good){display:none}
+.dlg.answered #opts{grid-template-columns:1fr}
+.dlg.wide{max-height:88%;bottom:6%}
+.dlg.slim{right:auto;max-width:60%}
+.ph{color:var(--gold);font:clamp(8px,.8cqw,11px)/1.5 "Press Start 2P",monospace;margin:0 10px 0 0}
+.rub{color:var(--red);margin:0 0 6px}
+.opt{display:flex;gap:10px;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:2px solid transparent;padding:4px 8px;margin:0 0 4px;cursor:pointer;min-height:44px;align-items:center}
+.opt b{color:var(--gold);font:11px/1 "Press Start 2P",monospace;flex:none;width:2.2em}
+.opt:hover:not(:disabled),.opt:focus-visible{border-color:var(--ink);outline:none}
+.opt:hover:not(:disabled) b::before,.opt:focus-visible b::before{content:"▶"}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.opt.good{border-color:var(--green);color:var(--green)}
+.opt.bad{opacity:.4;text-decoration:line-through}
+.opt:disabled{cursor:default}
+.shake{animation:sh .25s steps(2)}@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#out p{margin:4px 0}.done{color:var(--green)}.warn{color:var(--red)}
+.row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:4px}.row .btn{margin:0}
+.note{color:var(--soft);border-left:4px solid var(--gold);padding-left:10px}
+.btn{font:12px/1 "Press Start 2P",monospace;background:var(--red);color:#fff;border:3px solid #000;box-shadow:4px 4px 0 #000;min-height:44px;padding:0 18px;cursor:pointer;margin-top:8px}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn:active{transform:translate(4px,4px);box-shadow:none}
+.blink{animation:bl 1s steps(1) infinite}@keyframes bl{50%{opacity:0}}
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:4px 18px}
+.grp{margin:0 0 10px}.grp h3{font:10px/1.5 "Press Start 2P",monospace;color:var(--gold);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;color:var(--ink);background:none;border:2px solid var(--soft);min-height:44px;padding:2px 12px;cursor:pointer}
+.chip[aria-pressed=true]{border-color:var(--gold);color:#000;background:var(--gold)}
+.fine{font-size:18px;color:var(--soft);margin:10px 0 0}
+.big{font:clamp(14px,1.8vw,20px)/1.4 "Press Start 2P",monospace;color:var(--gold);margin:2px 0 8px;text-shadow:3px 3px 0 #7c0a14}
+kbd{font:inherit;opacity:.7}
+@media(max-width:760px),(max-aspect-ratio:1/1){body{display:block}.game{width:100vw;aspect-ratio:auto;height:100dvh;display:flex;flex-direction:column}canvas{flex:none}.dlg{position:static;flex:1;max-height:none;max-width:none;margin:0;font-size:20px}}
+@media(prefers-reduced-motion:reduce){.shake,.blink{animation:none}}
+</style>
+</head>
+<body>
+<main class="game">
+  <canvas id="cv" aria-label="Presbitério da igreja com o padre e os fiéis"></canvas>
+  <div class="hud"><span id="pts">0 pontos</span><div class="bar"><i id="prog"></i></div><span id="cnt"></span><button class="hb" id="mus" aria-pressed="true" title="Música (M)">♪</button><button class="hb" id="fs" title="Tela cheia (F)">⛶</button></div>
+  <div class="bub" id="pb" hidden></div>
+  <div class="bub" id="vb" hidden></div>
+  <button id="turn" hidden>Virar-se <kbd>V</kbd></button>
+  <section class="dlg" id="panel" aria-live="polite"></section>
+</main>
+<script>
+{
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EP={
+ 1:{n:'I · Cânon Romano',la:'Te igitur, clementissime Pater, per Iesum Christum, Filium tuum, Dominum nostrum, supplices rogamus ac petimus…',pt:'Pai de misericórdia, a quem sobem nossos louvores, suplicantes vos rogamos e pedimos por Jesus Cristo, vosso Filho e Senhor nosso…'},
+ 2:{n:'II',la:'Vere Sanctus es, Domine, fons omnis sanctitatis.',pt:'Na verdade, ó Pai, vós sois santo, fonte de toda santidade.'},
+ 3:{n:'III',la:'Vere Sanctus es, Domine, et merito te laudat omnis a te condita creatura…',pt:'Na verdade, vós sois santo, ó Deus do universo, e tudo o que criastes proclama o vosso louvor…'},
+ 4:{n:'IV',la:'Confitemur tibi, Pater sancte, quia magnus es et omnia opera tua in sapientia et caritate fecisti.',pt:'Nós proclamamos a vossa grandeza, Pai santo, a sabedoria e o amor com que fizestes todas as coisas.'}
+};
+const EPD={
+1:{pre:[
+ {n:'Pela Igreja',g:'orans',la:'Te igitur, clementissime Pater, per Iesum Christum, Filium tuum, Dominum nostrum, supplices rogamus ac petimus…',pt:'Pai de misericórdia, a quem sobem nossos louvores, suplicantes vos rogamos e pedimos por Jesus Cristo, vosso Filho e Senhor nosso…'},
+ {n:'Memento dos vivos',g:'joined',la:'Memento, Domine, famulorum famularumque tuarum N. et N. et omnium circumstantium…',pt:'Lembrai-vos, ó Pai, dos vossos filhos e filhas N. e N. e de todos os que circundam este altar…'},
+ {n:'Communicantes',g:'orans',la:'Communicantes, et memoriam venerantes, in primis gloriosae semper Virginis Mariae…',pt:'Em comunhão com toda a Igreja, veneramos em primeiro lugar a gloriosa sempre Virgem Maria…'},
+ {n:'Hanc igitur',g:'extend',la:'Hanc igitur oblationem servitutis nostrae, sed et cunctae familiae tuae, quaesumus, Domine, ut placatus accipias…',pt:'Aceitai, ó Pai, com bondade, a oferenda de nosso serviço e de toda a vossa família…'},
+ {n:'Quam oblationem',g:'extend',la:'Quam oblationem tu, Deus, in omnibus, quaesumus, benedictam, adscriptam, ratam, rationabilem, acceptabilemque facere digneris…',pt:'Dignai-vos, ó Pai, abençoar, aprovar e aceitar plenamente esta oferenda…'}],
+ inst:{la:'Qui, pridie quam pateretur, accepit panem in sanctas ac venerabiles manus suas, et elevatis oculis in caelum… fregit, deditque discipulis suis, dicens:',pt:'Na véspera de sua paixão, ele tomou o pão em suas santas e veneráveis mãos, elevou os olhos ao céu… partiu o pão e o deu a seus discípulos, dizendo:'},
+ cal:{la:'Simili modo, postquam cenatum est, accipiens et hunc praeclarum calicem in sanctas ac venerabiles manus suas… dedit discipulis suis, dicens:',pt:'Do mesmo modo, ao fim da ceia, ele tomou este precioso cálice em suas santas e veneráveis mãos… e o deu a seus discípulos, dizendo:'},
+ post:[
+ {n:'Anamnese',g:'orans',la:'Unde et memores, Domine, nos servi tui, sed et plebs tua sancta, eiusdem Christi, Filii tui, Domini nostri, tam beatae passionis…',pt:'Celebrando, pois, a memória da bem-aventurada paixão do vosso Filho, da sua ressurreição dos mortos e gloriosa ascensão aos céus…'},
+ {n:'Supra quae',g:'orans',la:'Supra quae propitio ac sereno vultu respicere digneris: et accepta habere, sicuti accepta habere dignatus es munera pueri tui iusti Abel…',pt:'Olhai com bondade e aceitai esta oferenda, como aceitastes os dons do justo Abel, o sacrifício de Abraão e a oferta de Melquisedeque…'},
+ {n:'Supplices',g:'joined',la:'Supplices te rogamus, omnipotens Deus: iube haec perferri per manus sancti Angeli tui in sublime altare tuum…',pt:'Suplicantes, vos pedimos, ó Deus todo-poderoso, que esta oferenda seja levada pelas mãos do vosso santo Anjo ao altar celeste…'},
+ {n:'Memento dos mortos',g:'joined',la:'Memento etiam, Domine, famulorum famularumque tuarum N. et N., qui nos praecesserunt cum signo fidei…',pt:'Lembrai-vos, ó Pai, dos vossos filhos e filhas N. e N., que nos precederam com o sinal da fé…'},
+ {n:'Nobis quoque',g:'joined',la:'Nobis quoque peccatoribus famulis tuis, de multitudine miserationum tuarum sperantibus, partem aliquam et societatem donare digneris…',pt:'E a todos nós pecadores, que confiamos na vossa infinita misericórdia, concedei, não por nossos méritos, mas por vossa bondade, o convívio dos vossos santos…'},
+ {n:'Per quem',g:'joined',la:'Per quem haec omnia, Domine, semper bona creas, sanctificas, vivificas, benedicis, et praestas nobis.',pt:'Por ele não cessais de criar, santificar, vivificar, abençoar estes bens e distribuí-los entre nós.'}]},
+2:{pre:[
+ {n:'Pós-Sanctus',g:'orans',la:'Vere Sanctus es, Domine, fons omnis sanctitatis.',pt:'Na verdade, ó Pai, vós sois santo, fonte de toda santidade.'},
+ {n:'Epiclese',g:'extend',la:'Haec ergo dona, quaesumus, Spiritus tui rore sanctifica, ut nobis Corpus et Sanguis fiant Domini nostri Iesu Christi.',pt:'Santificai, pois, estes dons, derramando sobre eles o vosso Espírito, a fim de que se tornem para nós o Corpo e o Sangue de nosso Senhor Jesus Cristo.'}],
+ inst:{la:'Qui cum Passioni voluntarie traderetur, accepit panem et gratias agens fregit, deditque discipulis suis, dicens:',pt:'Estando para ser entregue e abraçando livremente a paixão, ele tomou o pão, deu graças, e o partiu e deu a seus discípulos, dizendo:'},
+ cal:{la:'Simili modo, postquam cenatum est, accipiens et calicem, iterum gratias agens dedit discipulis suis, dicens:',pt:'Do mesmo modo, ao fim da ceia, ele tomou o cálice em suas mãos, deu graças novamente e o deu a seus discípulos, dizendo:'},
+ post:[
+ {n:'Anamnese e oblação',g:'orans',la:'Memores igitur mortis et resurrectionis eius, tibi, Domine, panem vitae et calicem salutis offerimus…',pt:'Celebrando, pois, a memória da morte e ressurreição do vosso Filho, nós vos oferecemos, ó Pai, o pão da vida e o cálice da salvação…'},
+ {n:'Epiclese de comunhão',g:'orans',la:'Et supplices deprecamur ut Corporis et Sanguinis Christi participes a Spiritu Sancto congregemur in unum.',pt:'E nós vos suplicamos que, participando do Corpo e Sangue de Cristo, sejamos reunidos pelo Espírito Santo num só corpo.'},
+ {n:'Pela Igreja',g:'orans',la:'Recordare, Domine, Ecclesiae tuae toto orbe diffusae, ut eam in caritate perficias una cum Papa nostro N. et Episcopo nostro N.…',pt:'Lembrai-vos, ó Pai, da vossa Igreja que se faz presente pelo mundo inteiro: que ela cresça na caridade, com o Papa N., com o nosso Bispo N.…'},
+ {n:'Pelos falecidos',g:'orans',la:'Memento etiam fratrum nostrorum, qui in spe resurrectionis dormierunt, omniumque in tua miseratione defunctorum…',pt:'Lembrai-vos também dos nossos irmãos e irmãs que morreram na esperança da ressurreição e de todos os que partiram desta vida…'},
+ {n:'Com os santos',g:'orans',la:'Omnium nostrum, quaesumus, miserere, ut cum beata Dei Genetrice Virgine Maria… aeternae vitae mereamur esse consortes…',pt:'Enfim, nós vos pedimos, tende piedade de todos nós e dai-nos participar da vida eterna, com a Virgem Maria, Mãe de Deus…'}]},
+3:{pre:[
+ {n:'Pós-Sanctus',g:'orans',la:'Vere Sanctus es, Domine, et merito te laudat omnis a te condita creatura…',pt:'Na verdade, vós sois santo, ó Deus do universo, e tudo o que criastes proclama o vosso louvor…'},
+ {n:'Epiclese',g:'extend',la:'Supplices ergo te, Domine, deprecamur, ut haec munera, quae tibi sacranda detulimus, eodem Spiritu sanctificare digneris…',pt:'Por isso, nós vos suplicamos: santificai pelo Espírito Santo as oferendas que vos apresentamos para serem consagradas…'}],
+ inst:{la:'Ipse enim in qua nocte tradebatur accepit panem et tibi gratias agens benedixit, fregit, deditque discipulis suis, dicens:',pt:'Na noite em que ia ser entregue, ele tomou o pão, deu graças, e o partiu e deu a seus discípulos, dizendo:'},
+ cal:{la:'Simili modo, postquam cenatum est, accipiens calicem, et tibi gratias agens benedixit, deditque discipulis suis, dicens:',pt:'Do mesmo modo, ao fim da ceia, ele tomou o cálice em suas mãos, deu graças novamente e o deu a seus discípulos, dizendo:'},
+ post:[
+ {n:'Anamnese e oblação',g:'orans',la:'Memores igitur, Domine, eiusdem Filii tui salutiferae passionis necnon mirabilis resurrectionis et ascensionis in caelum…',pt:'Celebrando agora, ó Pai, a memória do vosso Filho, da sua paixão que nos salva, da sua gloriosa ressurreição e da sua ascensão ao céu…'},
+ {n:'Epiclese de comunhão',g:'orans',la:'Respice, quaesumus, in oblationem Ecclesiae tuae et, agnoscens Hostiam, cuius voluisti immolatione placari…',pt:'Olhai com bondade a oferenda da vossa Igreja, reconhecei o sacrifício que nos reconcilia convosco…'},
+ {n:'Com os santos',g:'orans',la:'Ipse nos tibi perficiat munus aeternum, ut cum electis tuis hereditatem consequi valeamus…',pt:'Que ele faça de nós uma oferenda perfeita para alcançarmos a vida eterna com os vossos santos…'},
+ {n:'Pela Igreja e pelo mundo',g:'orans',la:'Haec Hostia nostrae reconciliationis proficiat, quaesumus, Domine, ad totius mundi pacem atque salutem…',pt:'E agora, nós vos suplicamos, ó Pai, que este sacrifício da nossa reconciliação estenda a paz e a salvação ao mundo inteiro…'},
+ {n:'Pelos falecidos',g:'orans',la:'Fratres nostros defunctos et omnes qui, tibi placentes, ex hoc saeculo transierunt, in regnum tuum benignus admitte…',pt:'Acolhei com bondade no vosso reino os nossos irmãos e irmãs que partiram desta vida…'}]},
+4:{pre:[
+ {n:'Pós-Sanctus · a criação',g:'orans',la:'Confitemur tibi, Pater sancte, quia magnus es et omnia opera tua in sapientia et caritate fecisti.',pt:'Nós proclamamos a vossa grandeza, Pai santo, a sabedoria e o amor com que fizestes todas as coisas.'},
+ {n:'Pós-Sanctus · o ser humano',g:'orans',la:'Hominem ad tuam imaginem condidisti, eique commisisti mundi curam universi…',pt:'Criastes o ser humano à vossa imagem e lhe confiastes todo o universo…'},
+ {n:'Pós-Sanctus · a aliança',g:'orans',la:'Et cum amicitiam tuam, non oboediens, amisisset, non eum dereliquisti in mortis imperio…',pt:'E quando pela desobediência perdeu a vossa amizade, não o abandonastes ao poder da morte…'},
+ {n:'Pós-Sanctus · o Filho',g:'orans',la:'Et sic, Pater sancte, mundum dilexisti, ut, completa plenitudine temporum, Unigenitum tuum nobis mitteres Salvatorem…',pt:'E de tal modo, Pai santo, amastes o mundo que, chegada a plenitude dos tempos, nos enviastes vosso próprio Filho como Salvador…'},
+ {n:'Pós-Sanctus · o Espírito',g:'orans',la:'Et, ut non amplius nobismetipsis viveremus, sed sibi qui pro nobis mortuus est atque surrexit, a te, Pater, misit Spiritum Sanctum…',pt:'E, a fim de não mais vivermos para nós, mas para ele, que por nós morreu e ressuscitou, enviou de vós, ó Pai, o Espírito Santo…'},
+ {n:'Epiclese',g:'extend',la:'Quaesumus igitur, Domine, ut idem Spiritus Sanctus haec munera sanctificare dignetur…',pt:'Por isso, nós vos pedimos que o mesmo Espírito Santo santifique estas oferendas…'}],
+ inst:{la:'Ipse enim, cum hora venisset ut glorificaretur a te, Pater sancte, ac dilexisset suos qui erant in mundo, in finem dilexit eos… accepit panem… dicens:',pt:'Quando, pois, chegou a hora em que por vós, ó Pai, ia ser glorificado, tendo amado os seus que estavam no mundo, amou-os até o fim… tomou o pão… dizendo:'},
+ cal:{la:'Simili modo accipiens calicem, ex genimine vitis repletum, gratias egit, deditque discipulis suis, dicens:',pt:'Do mesmo modo, ele tomou em suas mãos o cálice com vinho, deu graças e o deu a seus discípulos, dizendo:'},
+ post:[
+ {n:'Anamnese e oblação',g:'orans',la:'Unde et nos, Domine, redemptionis nostrae memoriale nunc celebrantes, mortem Christi eiusque descensum ad inferos recolimus…',pt:'Celebrando agora, ó Pai, a memória da nossa redenção, recordamos a morte de Cristo e sua descida à mansão dos mortos…'},
+ {n:'Epiclese de comunhão',g:'orans',la:'Respice, Domine, in Hostiam, quam Ecclesiae tuae ipse parasti…',pt:'Olhai com bondade o sacrifício que vós mesmo preparastes para a vossa Igreja…'},
+ {n:'Intercessões',g:'orans',la:'Nunc ergo, Domine, omnium recordare, pro quibus tibi hanc oblationem offerimus…',pt:'E agora, ó Pai, lembrai-vos de todos pelos quais vos oferecemos este sacrifício…'},
+ {n:'A herança eterna',g:'orans',la:'Nobis omnibus, filiis tuis, clemens Pater, concede, ut caelestem hereditatem consequi valeamus…',pt:'E a todos nós, vossos filhos e filhas, concedei, ó Pai de bondade, que alcancemos a herança eterna…'}]}
+};
+const RUBG={orans:'De braços abertos, continue a oração:',extend:'Com as mãos estendidas sobre as oferendas, continue:',joined:'De mãos juntas, continue:'};
+const DAYS=[
+ {n:'um domingo do Tempo Comum',c:'Verde',gl:1,pf:'Prefácio dos Domingos do Tempo Comum',tc:1},
+ {n:'o 1º Domingo do Advento',c:'Roxo',gl:0,pf:'Prefácio do Advento'},
+ {n:'o 3º Domingo do Advento (Gaudete)',c:'Rosa',alt:'Roxo',gl:0,pf:'Prefácio do Advento'},
+ {n:'o 2º Domingo da Quaresma',c:'Roxo',gl:0,pf:'Prefácio da Quaresma'},
+ {n:'o 4º Domingo da Quaresma (Laetare)',c:'Rosa',alt:'Roxo',gl:0,pf:'Prefácio da Quaresma'},
+ {n:'o Domingo de Ramos e da Paixão do Senhor',c:'Vermelho',gl:0,pf:'Prefácio do Domingo de Ramos'},
+ {n:'o Domingo de Páscoa',c:'Branco',gl:1,pf:'Prefácio da Páscoa'},
+ {n:'o Domingo de Pentecostes',c:'Vermelho',gl:1,pf:'Prefácio de Pentecostes'},
+ {n:'o Natal do Senhor',c:'Branco',gl:1,pf:'Prefácio do Natal'},
+ {n:'a Solenidade de Cristo Rei',c:'Branco',gl:1,pf:'Prefácio de Cristo Rei'}];
+const CORES=['Verde','Roxo','Rosa','Vermelho','Branco'],FEM={Verde:'verde',Roxo:'roxa',Rosa:'rosa',Vermelho:'vermelha',Branco:'branca'};
+const cfg={ep:4,lang:'la',ori:'ao',vest:'got',inc:'1'};
+
+function build(){
+ const L=cfg.lang==='la',e=cfg.ep,others=[1,2,3,4].filter(n=>n!==e).slice(0,2);
+ const T=(la,pt)=>L?la:pt,D=EPD[e],lg=cfg.lang,pool=[...D.pre,...D.post,{n:'',la:D.inst.la,pt:D.inst.pt},{n:'',la:D.cal.la,pt:D.cal.pt}];
+ const distract=x=>pool.filter(p=>p[lg]!==x).sort(()=>Math.random()-.5).slice(0,2).map(p=>p[lg]);
+ const sec=(p,pos)=>({read:1,ph:'OE '+EP[e].n+(p.n?' · '+p.n:''),ep:1,face:'altar',rub:RUBG[p.g],o:[p[lg],...distract(p[lg])],g:p.g,pos});
+ const pre=D.pre.map(p=>sec(p,'kneel')),post=D.post.map(p=>sec(p,'stand'));
+ const inst={...sec({n:'Narrativa da instituição',g:'holdHost',la:D.inst.la,pt:D.inst.pt},'kneel'),rub:'Tomando o pão, um pouco elevado sobre o altar:'};
+ const cal={...sec({n:'Narrativa da instituição',g:'holdChalice',la:D.cal.la,pt:D.cal.pt},'kneel'),rub:'Tomando o cálice, um pouco elevado sobre o altar:'};
+ const Dy=st.day,cor=[Dy.c,...CORES.filter(c=>c!==Dy.c)],pfs=[...new Set(DAYS.map(d=>d.pf)),'Prefácio dos Mártires'];
+ const pick=(arr,n)=>arr.sort(()=>Math.random()-.5).slice(0,n);
+ const P4='O prefácio próprio da Oração Eucarística IV';
+ const pref=e===4?{o:[P4,...pick(pfs.filter(p=>p!==P4&&(Dy.tc?1:p!==Dy.pf)).slice(),Dy.tc?2:1),...(Dy.tc?[]:[Dy.pf])],note:Dy.tc?'A Oração IV tem prefácio fixo: não se usa com outro prefácio.':'A IGMR (n. 365) reserva a Oração IV para os domingos do Tempo Comum e Missas sem prefácio próprio. Hoje, o ideal seria outra Oração Eucarística.'}
+   :{o:[Dy.pf,P4,...pick(pfs.filter(p=>p!==Dy.pf),1)],note:'O prefácio próprio da IV só se usa com a própria Oração IV.'};
+ const S=[
+ {ph:'Na sacristia',at:'sac',rub:'Hoje é '+Dy.n+'. De que cor é a casula?',o:cor,ok:Dy.alt?[0,cor.indexOf(Dy.alt)]:[0],vestir:1,say:false,g:'joined',pos:'stand',note:Dy.alt?'Neste domingo, rosa ou roxo: as duas cores são permitidas.':''},
+ {ph:'Procissão de entrada',proc:1,rub:'Começa o canto de entrada e o povo se levanta. Acompanhe a procissão até o altar…',o:[],pos:'stand'},
+ ...(cfg.inc==='1'?[{ph:'Incensação',at:'frente',rub:'O turiferário traz o turíbulo. Depois de beijar o altar:',o:['Pôr e abençoar o incenso, incensar a cruz e o altar','Incensar o povo primeiro','Ir direto para a cadeira'],say:false,pa:'incAltar',paDur:7,g:'joined',pos:'stand'}]:[]),
+ {ph:'Ritos iniciais',at:'cadeira',psit:0,rub:'Depois de beijar o altar, você está na cadeira. Comece:',o:['Em nome do Pai e do Filho e do Espírito Santo.','Ide em paz, e o Senhor vos acompanhe.','Corações ao alto.'],r:'Amém.',g:'sign',pos:'stand'},
+ {ph:'Ritos iniciais',rub:'Saúde o povo, abrindo os braços:',o:['O Senhor esteja convosco.','Eis o mistério da fé!','Orai, irmãos e irmãs…'],r:'Ele está no meio de nós.',g:'orans',pos:'stand'},
+ {ph:'Ato penitencial',rub:'Convide a assembleia ao ato penitencial:',o:['Irmãos e irmãs, reconheçamos as nossas culpas para celebrarmos dignamente os santos mistérios.','Demos graças ao Senhor, nosso Deus.','Felizes os convidados para a Ceia do Senhor.'],r:'Confesso a Deus todo-poderoso…',g:'joined',pos:'stand'},
+ Dy.gl?{ph:'Glória',rub:'Hoje é '+Dy.n+'. O que vem agora?',o:['Entoar o Glória','Omitir o Glória e passar à oração do dia','Rezar o Credo'],say:false,r:'Glória a Deus nas alturas…',g:'joined',pos:'stand'}
+  :{ph:'Glória',rub:'Hoje é '+Dy.n+'. O que vem agora?',o:['Omitir o Glória e passar à oração do dia','Entoar o Glória','Rezar o Credo'],say:false,g:'joined',pos:'stand',note:'No Advento e na Quaresma (inclusive no Domingo de Ramos), não se diz o Glória aos domingos.'},
+ {ph:'Oração do dia',missal:1,pa:'missal',act:'Faz sinal ao coroinha para trazer o Missal',rub:'Antes de rezar: qual livro o coroinha deve trazer?',o:['O Missal Romano','O Lecionário','O Evangeliário'],say:false,g:'joined',pos:'stand',note:'As orações do padre estão no Missal. O Lecionário traz as leituras, e o Evangeliário, o Evangelho.'},
+ {ph:'Oração do dia',holdBook:1,rub:'De mãos juntas, convide à oração; depois, abra os braços:',o:['Oremos.','Ide em paz.','A paz do Senhor esteja sempre convosco.'],r:'Amém.',g:'orans',pos:'stand'},
+ {ph:'Liturgia da Palavra',lector:1,sitOk:1,rub:'O leitor vai ao ambão para a primeira leitura e o salmo. E você?',o:['Sentar e ouvir com atenção','Ir ao altar preparar o cálice','Ficar de pé ao lado do leitor'],say:false,r:'Palavra do Senhor. — Graças a Deus.',g:'joined',pos:'sit'},
+ {ph:'Evangelho',at:'ambao',rub:'Não há diácono: você mesmo vai ao ambão proclamar o Evangelho.',o:['O Senhor esteja convosco. — Proclamação do Evangelho de Jesus Cristo segundo Mateus.','Palavra do Senhor.','Eis o Cordeiro de Deus…'],r:'Glória a vós, Senhor.',g:'joined',pos:'stand'},
+ ...(cfg.inc==='1'?[{ph:'Evangelho',rub:'Antes de ler:',o:['Incensar o livro dos Evangelhos com três ductos','Incensar o leitor','Incensar o altar de novo'],say:false,pa:'incBook',g:'joined',pos:'stand'}]:[]),
+ {ph:'Evangelho',rub:'Terminada a leitura, beije o livro e diga:',o:['Palavra da Salvação.','Palavra do Senhor.','Graças a Deus.'],r:'Glória a vós, Senhor.',g:'joined',pos:'stand'},
+ {ph:'Homilia',rub:'O povo se senta. É a sua vez.',o:['Fazer a homilia sobre as leituras do dia','Ler os avisos paroquiais','Passar logo ao Credo'],say:false,r:'(o povo escuta em silêncio)',g:'orans',pos:'sit'},
+ {ph:'Profissão de fé',at:'cadeira',rub:'Domingo: de volta à cadeira, todos se levantam.',o:['Professar o Credo com o povo','Rezar o Pai-Nosso','Entoar o Santo'],say:false,r:'Creio em Deus Pai todo-poderoso…',g:'joined',pos:'stand'},
+ {ph:'Oração universal',rub:'Conduza as preces da comunidade:',o:['Introduzir as preces e concluí-las com uma oração','Dar a bênção final','Começar o ofertório em silêncio'],say:false,r:'Senhor, escutai a nossa prece.',g:'joined',pos:'stand'},
+ {ph:'Preparação das oferendas',at:'altar',rub:'Já no altar, tome a patena com o pão, um pouco elevada:',o:['Bendito sejais, Senhor, Deus do universo, pelo pão que recebemos de vossa bondade…','Isto é o meu Corpo…','O Corpo de Cristo.'],r:'Bendito seja Deus para sempre!',g:'offer',pos:'sit'},
+ ...(cfg.inc==='1'?[{ph:'Preparação das oferendas',rub:'O turiferário se aproxima. Depois de pôr o incenso:',o:['Incensar as oferendas, a cruz e o altar','Incensar só o povo','Passar direto ao lavabo'],say:false,pa:'incAltar',paDur:10.5,g:'joined',pos:'sit',note:'Em seguida, o turiferário incensa você e o povo.'}]:[]),
+ {ph:'Preparação das oferendas',at:'lav',pa:'lav',rub:'Vá ao lado do altar. Os coroinhas trazem a jarra e a bacia.',o:['Lavar as mãos, rezando em silêncio','Abençoar a assembleia','Ir para a cadeira'],say:false,g:'joined',pos:'sit'},
+ {ph:'Preparação das oferendas',at:'altar',face:'povo',rub:'Convide o povo a rezar com você:',o:['Orai, irmãos e irmãs, para que o meu e o vosso sacrifício seja aceito por Deus Pai todo-poderoso.','Corações ao alto.','Oremos.'],r:'Receba o Senhor por tuas mãos este sacrifício, para glória do seu nome, para nosso bem e de toda a santa Igreja.',g:'orans',pos:'stand'},
+ {ph:'Preparação das oferendas',bringMissal:1,face:'altar',rub:'O coroinha leva o Missal ao altar. De braços abertos:',o:['Rezar a oração sobre as oferendas','Dizer: Ide em paz','Começar o Pai-Nosso'],say:false,r:'Amém.',g:'orans',pos:'stand'},
+ {ph:'Prefácio',face:'altar',rub:'Hoje é '+Dy.n+(e===4?', com a Oração Eucarística IV':'')+'. Qual prefácio?',o:pref.o,say:false,g:'joined',pos:'stand',note:pref.note},
+ {ph:'Diálogo do prefácio',face:'altar',rub:'Abrindo os braços:',o:[T('Dominus vobiscum.','O Senhor esteja convosco.'),T('Ite, missa est.','Ide em paz.'),T('Oremus.','Oremos.')],r:T('Et cum spiritu tuo.','Ele está no meio de nós.'),g:'orans',pos:'stand'},
+ {ph:'Diálogo do prefácio',face:'altar',rub:'Elevando as mãos:',o:[T('Sursum corda.','Corações ao alto.'),T('Mysterium fidei.','Eis o mistério da fé!'),T('Pax Domini sit semper vobiscum.','A paz do Senhor esteja sempre convosco.')],r:T('Habemus ad Dominum.','O nosso coração está em Deus.'),g:'orans',pos:'stand'},
+ {ph:'Diálogo do prefácio',face:'altar',rub:'Continue:',o:[T('Gratias agamus Domino Deo nostro.','Demos graças ao Senhor, nosso Deus.'),T('Benedicat vos omnipotens Deus.','Abençoe-vos Deus todo-poderoso.'),T('Per ipsum, et cum ipso…','Por Cristo, com Cristo…')],r:T('Dignum et iustum est.','É nosso dever e nossa salvação.'),g:'orans',pos:'stand'},
+ {ph:'Santo',face:'altar',rub:'Terminado o prefácio, de mãos juntas:',o:['Cantar o Santo com o povo','Elevar a hóstia','Dar a paz'],say:false,r:T('Sanctus, Sanctus, Sanctus Dominus Deus Sabaoth…','Santo, Santo, Santo, Senhor, Deus do universo…'),g:'joined',pos:'kneel'},
+ ...pre,
+ inst,
+ {ph:'Consagração',face:'altar',ep:1,rub:'Inclinando-se um pouco, diga com clareza:',o:[T('Accipite et manducate ex hoc omnes: hoc est enim Corpus meum, quod pro vobis tradetur.','Tomai, todos, e comei: isto é o meu Corpo, que será entregue por vós.'),T('Corpus Christi.','O Corpo de Cristo.'),T('Ecce Agnus Dei…','Eis o Cordeiro de Deus…')],g:'holdHost',pos:'kneel'},
+ {read:1,ph:'Consagração',ep:1,face:'altar',rub:'Você mostra a hóstia consagrada ao povo e genuflete.',o:['Mostrar a hóstia consagrada ao povo, depositá-la na patena e genufletir','Partir a hóstia imediatamente','Dar a comunhão aos coroinhas'],say:false,g:'elevHost',bell:1,pos:'kneel'},
+ cal,
+ {ph:'Consagração',ep:1,face:'altar',rub:'Inclinando-se um pouco, diga:',o:[T('Accipite et bibite ex eo omnes: hic est enim calix Sanguinis mei novi et aeterni testamenti, qui pro vobis et pro multis effundetur in remissionem peccatorum. Hoc facite in meam commemorationem.','Tomai, todos, e bebei: este é o cálice do meu Sangue, o Sangue da nova e eterna aliança, que será derramado por vós e por muitos para remissão dos pecados. Fazei isto em memória de mim.'),T('Sanguis Christi.','O Sangue de Cristo.'),T('Dominus vobiscum.','O Senhor esteja convosco.')],g:'holdChalice',pos:'kneel'},
+ {read:1,ph:'Consagração',ep:1,face:'altar',rub:'Você mostra o cálice ao povo e genuflete.',o:['Mostrar o cálice ao povo, depositá-lo sobre o corporal e genufletir','Beber do cálice','Lavar as mãos'],say:false,g:'elevChalice',bell:1,pos:'kneel'},
+ {read:1,ph:'Mistério da fé',ep:1,face:'altar',rub:'Proclame:',o:[T('Mysterium fidei.','Eis o mistério da fé!'),T('Ite, missa est.','Ide em paz.'),T('Verbum Domini.','Palavra do Senhor.')],r:T('Mortem tuam annuntiamus, Domine, et tuam resurrectionem confitemur, donec venias.','Anunciamos, Senhor, a vossa morte e proclamamos a vossa ressurreição. Vinde, Senhor Jesus!'),g:'joined',pos:'stand'},
+ ...post,
+ {ph:'Doxologia final',ep:1,face:'altar',rub:'Elevando a patena e o cálice:',o:[T('Per ipsum, et cum ipso, et in ipso, est tibi Deo Patri omnipotenti, in unitate Spiritus Sancti, omnis honor et gloria per omnia saecula saeculorum.','Por Cristo, com Cristo, e em Cristo, a vós, Deus Pai todo-poderoso, na unidade do Espírito Santo, toda a honra e toda a glória, por todos os séculos dos séculos.'),T('Dominus vobiscum.','O Senhor esteja convosco.'),T('Agnus Dei…','Cordeiro de Deus…')],r:T('Amen.','Amém.'),g:'elevBoth',pos:'stand'},
+ {ph:'Rito da Comunhão',face:'altar',rub:'De mãos juntas, introduza a Oração do Senhor:',o:['Obedientes à palavra do Salvador e formados por seu divino ensinamento, ousamos dizer:','Orai, irmãos e irmãs…','Irmãos e irmãs, reconheçamos as nossas culpas…'],r:'Pai nosso, que estais nos céus…',g:'orans',pos:'stand'},
+ {ph:'Rito da paz',face:'povo',rub:'Abrindo e unindo as mãos:',o:['A paz do Senhor esteja sempre convosco.','O Senhor esteja convosco.','Ide em paz.'],r:'O amor de Cristo nos uniu.',g:'orans',pos:'stand'},
+ {ph:'Fração do pão',face:'altar',rub:'Enquanto se canta o Cordeiro de Deus:',o:['Partir a hóstia sobre a patena','Elevar o cálice','Voltar à cadeira'],say:false,r:'Cordeiro de Deus, que tirais o pecado do mundo…',g:'fraction',pos:'stand'},
+ {ph:'Comunhão',face:'povo',rub:'Mostrando a hóstia ao povo:',o:['Felizes os convidados para a Ceia do Senhor. Eis o Cordeiro de Deus, que tira o pecado do mundo.','Eis o mistério da fé!','Palavra da Salvação.'],r:'Senhor, eu não sou digno de que entreis em minha morada, mas dizei uma palavra e serei salvo.',g:'elevHost',pos:'stand'},
+ {read:1,silent:1,ph:'Comunhão do sacerdote',face:'altar',rub:'Em silêncio, você comunga o Corpo e o Sangue de Cristo.',o:[''],g:'consume',g2:'drink',pos:'stand'},
+ {ph:'Comunhão',face:'povo',rub:'Agora, a cada fiel que se aproxima:',o:['O Corpo de Cristo.','Isto é o meu Corpo.','Ide em paz.'],r:'Amém.',g:'holdHost',pos:'stand'},
+ {ph:'Purificação',rub:'Todos comungaram. E agora?',o:['Purificar a patena e o cálice e levá-los à credência','Deixar tudo sobre o altar até o fim da Missa','Abençoar o povo com o cálice'],say:false,clear:1,g:'joined',pos:'sit'},
+ {ph:'Depois da comunhão',at:'cadeira',holdBook:1,rub:'De volta à cadeira, após um momento de silêncio, de pé:',o:['Oremos. (oração depois da comunhão)','Corações ao alto.','Em nome do Pai…'],r:'Amém.',g:'orans',pos:'stand'},
+ {ph:'Ritos finais',face:'povo',rub:'Abençoe o povo:',o:['O Senhor esteja convosco. — Abençoe-vos Deus todo-poderoso, Pai e Filho e Espírito Santo.','Em nome do Pai e do Filho e do Espírito Santo.','Por Cristo, com Cristo…'],r:'Amém.',g:'sign',pos:'stand'},
+ {ph:'Ritos finais',face:'povo',rub:'Despeça a assembleia:',o:['Ide em paz, e o Senhor vos acompanhe.','Oremos.','O Senhor esteja convosco.'],r:'Graças a Deus.',g:'joined',pos:'stand'}
+ ];
+ const idx=f=>S.findIndex(f),iS=idx(x=>x.ph==='Santo'),iE=idx(x=>x.g==='elevChalice'),iM=idx(x=>x.bringMissal),iP=idx(x=>x.ph==='Doxologia final');
+ for(let k=iS;k<=iE;k++)S[k].thr=1;for(let k=iM;k<=iP;k++)S[k].onAlt=1;
+ return S;
+}
+
+/* ---------- estado ---------- */
+const st={steps:[],i:-1,score:0,streak:0,mist:0,first:true,wait:false,facing:'povo',at:'cadeira',g:'joined',pos:'stand',gifts:false,playing:false};
+const panel=document.getElementById('panel'),turnB=document.getElementById('turn'),pb=document.getElementById('pb'),vb=document.getElementById('vb');
+let lastSay='';
+function say(el,html){if(html){el.innerHTML=html;el.hidden=false;}else el.hidden=true;}
+const ptsE=document.getElementById('pts'),progE=document.getElementById('prog'),cntE=document.getElementById('cnt');
+const AO=()=>cfg.ori==='ao';
+
+function hud(){ptsE.textContent=st.score+' pontos';const n=st.steps.length||1;progE.style.width=(Math.max(0,st.i)/n*100)+'%';cntE.textContent=st.playing?(st.i+1)+'/'+n:'';
+ turnB.hidden=!(st.playing&&AO());turnB.disabled=st.at!=='altar';}
+
+function setup(){
+ say(pb);say(vb);lastSay='';st.playing=false;st.i=-1;st.at='sac';st.color=null;st.psit=false;st.lector=false;st.facing='povo';st.g='joined';st.pos='sit';st.gifts=false;hud();
+ const grp=(t,k,opts)=>`<div class="grp"><h3>${t}</h3><div class="chips">${opts.map(([v,l])=>`<button class="chip" data-k="${k}" data-v="${v}" aria-pressed="${String(cfg[k])===String(v)}">${l}</button>`).join('')}</div></div>`;
+ panel.className='dlg wide';st.servers=false;st.proc=0;st.pa=null;SMK.length=0;SP.forEach((p,n)=>Object.assign(p,HOME[n]));Object.assign(TH,THH);
+ panel.innerHTML=`<p class="big">Simulador de Missa</p><p class="rub">Na sacristia: escolha como vai celebrar este domingo do Tempo Comum.</p><div class="setup">
+ ${grp('Oração Eucarística','ep',[[1,'I · Cânon Romano'],[2,'II'],[3,'III'],[4,'IV']])}
+ ${grp('Idioma da Liturgia Eucarística','lang',[['la','Latim'],['pt','Português']])}
+ ${grp('Orientação no altar','ori',[['ao','Ad orientem'],['vp','Versus populum']])}
+ ${grp('Casula','vest',[['got','Gótica'],['rom','Romana']])}
+ ${grp('Turíbulo','inc',[['1','Com incenso'],['0','Sem incenso']])}</div>
+ <button class="btn" id="go"><span class="blink">▶</span> Ir para o altar</button>
+ <p class="fine">O dia litúrgico é sorteado a cada Missa. Ad orientem: você celebra voltado para o altar e precisa se virar para o povo nos momentos certos (botão Virar-se ou tecla V). Protótipo. Os textos aparecem resumidos para o jogo; para celebrar de verdade, use o Missal Romano.</p>`;
+ panel.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k;cfg[k]=k==='ep'?+b.dataset.v:b.dataset.v;panel.querySelectorAll(`.chip[data-k="${k}"]`).forEach(x=>x.setAttribute('aria-pressed',x===b));});
+ document.getElementById('go').onclick=start;
+}
+function start(){audio();st.lavDone=false;st.book=false;st.missalPlaced=false;SP.forEach(p=>{p.has=false;p.mis=false;});st.day=DAYS[Math.random()*DAYS.length|0];st.color=null;st.at='sac';st.steps=build();st.i=0;st.score=0;st.streak=0;st.mist=0;st.playing=true;st.pos='stand';show();}
+
+function show(){
+ const s=st.steps[st.i];st.first=true;st.wait=true;
+ if(s.at&&s.at!==st.at){st.at=s.at;if(s.at==='altar'){st.gifts=true;st.facing=AO()?'altar':'povo';}else st.facing='povo';}
+ st.psit=false;st.lector=!!s.lector;st.book=!!s.holdBook;if(s.holdBook)st.missalPlaced=false;
+ panel.className='dlg';
+ if(s.proc){lastSay='';say(vb);say(pb);st.wait=false;st.pos='stand';st.at='proc';st.servers=true;st.proc=performance.now();hud();music();
+  panel.classList.add('slim');panel.innerHTML=`<p class="ph">${esc(s.ph)}</p><p class="rub">${esc(s.rub)}</p><button class="btn" id="skip">Pular ▶</button>`;
+  document.getElementById('skip').onclick=()=>{st.proc=performance.now()-procT()*1000;};return;}
+ if(s.read){st.wait=false;if(s.face&&st.at==='altar')st.facing=s.face;st.g=s.g||'joined';if(s.bell)bell();setTimeout(()=>st.pos=s.pos||st.pos,500);
+  if(s.g2)setTimeout(()=>{if(st.steps[st.i]===s)st.g=s.g2;},1800);
+  lastSay=s.silent?'':s.say===false?`<i>(${esc(s.o[0])})</i>`:esc(s.o[0]);hud();music();say(vb);say(pb,lastSay);if(s.r)setTimeout(()=>say(vb,'<b>Povo</b>'+esc(s.r)),900);
+  panel.innerHTML=`<p class="rub"><span class="ph">${esc(s.ph)}</span>${esc(s.rub)}</p><div class="row"><button class="btn" id="next">Avançar ▶</button></div>`;
+  const nx=document.getElementById('next');nx.onclick=next;nx.focus({preventScroll:true});return;}
+ hud();music();say(vb);say(pb,lastSay);
+ const opts=s.o.map((t,k)=>({t,k})).sort(()=>Math.random()-.5);
+ panel.innerHTML=`<p class="rub"><span class="ph">${esc(s.ph)}</span>${esc(s.rub)}</p><div id="opts">${opts.map((x,n)=>`<button class="opt" data-k="${x.k}"><b>${n+1}</b><span>${esc(x.t)}</span></button>`).join('')}</div><div id="out" aria-live="polite"></div>`;
+ panel.querySelectorAll('.opt').forEach(b=>b.onclick=()=>choose(b));
+}
+function choose(b){
+ if(!st.wait)return;const s=st.steps[st.i],out=document.getElementById('out'),kk=+b.dataset.k,ok=(s.ok||[0]).includes(kk);
+ if(ok&&AO()&&s.face&&st.at==='altar'&&st.facing!==s.face){
+  miss(b,false);out.innerHTML=`<p class="warn">Rubrica: diga isto ${s.face==='povo'?'voltado para o povo':'voltado para o altar'}. Use Virar-se (V) e escolha de novo.</p>`;return;}
+ if(!ok){miss(b,true);out.innerHTML='<p class="warn">Ainda não é o momento disso.</p>';return;}
+ st.wait=false;st.score+=st.first?100+st.streak*10:40;st.streak=st.first?st.streak+1:0;
+ st.g=s.g||'joined';if(s.bell)bell();else sfx('ok');setTimeout(()=>st.pos=s.pos||st.pos,500);
+ panel.querySelectorAll('.opt').forEach(x=>x.disabled=true);b.classList.add('good');panel.classList.add('answered');
+ if(s.pa)st.pa={k:s.pa,t0:performance.now()+350,from:{x:P.x,y:P.y},dur:s.paDur||7};
+ if(s.missal)st.book=true;
+ if(s.vestir)st.color=s.o[kk];if(s.clear)setTimeout(()=>st.gifts=false,500);if(s.sitOk)st.psit=true;
+ lastSay=s.act?`<i>(${esc(s.act)})</i>`:s.vestir?`<i>(Reveste-se com a casula ${esc(FEM[s.o[kk]])})</i>`:s.say===false?`<i>(${esc(s.o[kk])})</i>`:esc(s.o[kk]);say(pb,lastSay);if(s.r)setTimeout(()=>say(vb,'<b>Povo</b>'+esc(s.r)),450);
+ out.innerHTML=`<div class="row"><span class="done">✓ Muito bem!</span><button class="btn" id="next">${st.i===st.steps.length-1?'Concluir':'Continuar'} ▶</button></div>`+(s.note?`<p class="note">${esc(s.note)}</p>`:'');
+ const nx=document.getElementById('next');nx.onclick=next;if(s.pa){nx.dataset.l=nx.textContent;nx.disabled=true;nx.textContent='Aguarde…';}nx.focus({preventScroll:true});nx.scrollIntoView({block:'nearest'});hud();
+}
+function miss(b,cross){sfx('bad');st.mist++;st.streak=0;st.first=false;b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');if(cross){b.classList.add('bad');b.disabled=true;}}
+function next(){st.i++;if(st.i>=st.steps.length)end();else show();}
+function end(){
+ st.playing=false;st.g='sign';say(vb);say(pb,cfg.lang==='la'?'Ite, missa est.':'Ide em paz.');hud();music();sfx('end');progE.style.width='100%';
+ const r=st.mist===0?'Celebração impecável. O sacristão está impressionado.':st.mist<=4?'Bela celebração, com pequenos tropeços que ninguém notou.':st.mist<=10?'O povo acompanhou bem. Vale rever o Missal antes do próximo domingo.':'Celebração cheia de improvisos. Hora de uma visita ao cerimoniário!';
+ panel.className='dlg wide';
+ panel.innerHTML=`<p class="ph">Ritos finais</p><p class="big">${cfg.lang==='la'?'Ite, missa est.':'Ide em paz.'}</p><p>${esc(r)}</p>
+ <p><b>${st.score}</b> pontos · <b>${st.mist}</b> ${st.mist===1?'erro':'erros'}</p>
+ <p class="note">${esc(st.day.n.replace(/^(um|o|a) /,''))} · Oração Eucarística ${esc(EP[cfg.ep].n)} · ${cfg.lang==='la'?'latim':'português'} · ${cfg.ori==='ao'?'ad orientem':'versus populum'}</p>
+ <button class="btn" id="again">Celebrar de novo</button>`;
+ document.getElementById('again').onclick=setup;
+}
+const fsB=document.getElementById('fs');if(!document.fullscreenEnabled)fsB.hidden=true;
+fsB.onclick=()=>{try{const p=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(()=>{fsB.hidden=true;});}catch(_){fsB.hidden=true;}};
+turnB.onclick=()=>{if(st.at==='altar'&&AO()){st.facing=st.facing==='povo'?'altar':'povo';sfx('turn');}};
+addEventListener('keydown',e=>{
+ if(e.target.tagName==='INPUT')return;
+ if((e.key==='v'||e.key==='V')&&!turnB.hidden&&!turnB.disabled){turnB.click();return;}
+ if(e.key==='m'||e.key==='M'){musB.click();return;}
+ if((e.key==='f'||e.key==='F')&&!fsB.hidden){fsB.click();return;}
+ if(/^[1-5]$/.test(e.key)){const b=panel.querySelectorAll('.opt')[+e.key-1];if(b&&!b.disabled)b.click();}
+ if(e.key==='Enter'||e.key===' '){const n=document.getElementById('next')||document.getElementById('skip');if(n&&document.activeElement!==n){e.preventDefault();n.click();}}
+});
+
+/* ---------- som 8 bits ---------- */
+let ac=null,master=null,musG=null,timer=null,nextT=0,stepN=0;
+let musicOn=true;try{musicOn=localStorage.getItem('missa8-mus')!=='0';}catch(_){}
+const musB=document.getElementById('mus');musB.setAttribute('aria-pressed',musicOn);
+function audio(){try{if(!ac){ac=new AudioContext();master=ac.createGain();master.gain.value=.5;master.connect(ac.destination);musG=ac.createGain();musG.gain.value=0;const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1700;musG.connect(lp).connect(master);}if(ac.state==='suspended')ac.resume();return true;}catch(_){return false;}}
+const hz=m=>440*2**((m-69)/12);
+function tone(m,t,d,type='square',v=.08,dest){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=hz(m);g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+d*.75);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g).connect(dest||master);o.start(t);o.stop(t+d+.02);}
+// Prelúdio em Dó, BWV 846 (Bach) — o acompanhamento da Ave Maria de Bach/Gounod
+const PRE=[[60,64,67,72,76],[60,62,69,74,77],[59,62,67,74,77],[60,64,67,72,76],[60,64,69,76,81],[60,62,66,69,74],[59,62,67,74,79],[59,60,64,67,72],[57,60,64,67,72],[50,57,62,66,72],[55,59,62,67,71],[55,58,64,67,73],[53,57,62,69,74],[53,56,62,65,71],[52,55,60,67,72],[52,53,57,60,65],[50,53,57,60,65],[43,50,55,59,65],[48,52,55,60,64]];
+const FIG=[0,1,2,3,4,2,3,4],S16=.2;
+function pluck(m,t,v,d){const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=hz(m);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0005,t+d);o.connect(g).connect(musG);o.start(t);o.stop(t+d+.02);}
+function sched(){while(nextT<ac.currentTime+.2){const bar=PRE[(stepN>>4)%PRE.length],j=stepN%8;
+ if(j===0)tone(bar[0],nextT,S16*7.8,'triangle',.13,musG);
+ if(j===1)tone(bar[1],nextT,S16*6.8,'triangle',.07,musG);
+ if(j>=2)pluck(bar[FIG[j]],nextT,.032,S16*3);
+ nextT+=S16;stepN++;}}
+function music(){if(!ac)return;const s=st.steps[st.i]||{},hush=!!s.ep||!st.playing;
+ const want=musicOn&&!hush?1:0;musG.gain.cancelScheduledValues(ac.currentTime);musG.gain.setTargetAtTime(want,ac.currentTime,.4);
+ if(musicOn&&!timer){nextT=ac.currentTime+.05;timer=setInterval(sched,40);}
+ if(!musicOn&&timer){clearInterval(timer);timer=null;}}
+function sfx(kind){if(!audio())return;const t=ac.currentTime;
+ if(kind==='ok')[76,79,83,88].forEach((m,j)=>tone(m,t+j*.06,.07,'square',.07));
+ if(kind==='bad'){tone(52,t,.12,'square',.08);tone(47,t+.12,.2,'square',.08);}
+ if(kind==='turn')tone(84,t,.05,'square',.05);
+ if(kind==='end')[74,78,81,86,0,81,86].forEach((m,j)=>m&&tone(m,t+j*.13,.12,'square',.08));}
+function bell(){if(!audio())return;const t0=ac.currentTime;[0,.22,.44].forEach(d=>{tone(96,t0+d,.18,'square',.05);tone(103,t0+d,.12,'square',.025);tone(91,t0+d+.02,.3,'triangle',.08);});}
+musB.onclick=()=>{musicOn=!musicOn;musB.setAttribute('aria-pressed',musicOn);try{localStorage.setItem('missa8-mus',musicOn?'1':'0');}catch(_){}audio();music();};
+
+/* ---------- desenho ---------- */
+const cv=document.getElementById('cv'),vx=cv.getContext('2d');let cx;
+const W=960,H=540,LW=320,LH=180;
+const oc=document.createElement('canvas');oc.width=LW;oc.height=LH;const mcx=oc.getContext('2d',{willReadFrequently:true});cx=mcx;
+function fit(){const d=devicePixelRatio||1,m=Math.max(1,Math.round(cv.clientWidth*d/LW));cv.width=LW*m;cv.height=LH*m;}
+// paleta limitada estilo console antigo
+const PAL=['#000000','#140f1c','#1d1a2b','#2c2440','#3b2f4a','#2a1f1a','#4a3526','#5c3c28','#8a5a34','#c08a4e','#e2b48f','#f3e7c8','#ffffff','#7c0a14','#c8202c','#2f5fa8','#5fa0e8','#1f5a2c','#3a9a48','#5ad46a','#3e1f66','#9a6cc8','#a8456e','#e07aa8','#f5b0cc','#ff6060','#c8bfae','#f3ede0','#d9b448','#ffd84a','#6a3c96','#4a4a5a','#8a8a9a'].map(h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)));
+const qc=new Map();
+function quant(){const im=cx.getImageData(0,0,LW,LH),d=im.data;for(let i=0;i<d.length;i+=4){const key=(d[i]>>3)<<10|(d[i+1]>>3)<<5|(d[i+2]>>3);let c=qc.get(key);if(!c){let best=1e9;for(const p of PAL){const dr=d[i]-p[0],dg=d[i+1]-p[1],db=d[i+2]-p[2],e=dr*dr*.3+dg*dg*.59+db*db*.11;if(e<best){best=e;c=p;}}qc.set(key,c);}d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;}cx.putImageData(im,0,0);}
+const ro=new ResizeObserver(fit);ro.observe(cv);
+const POS={frente:{x:480,y:404,s:1},lav:{x:598,y:406,s:1.02},sac:{x:44,y:398,s:.92},cadeira:{x:165,y:398,s:.92},ambao:{x:796,y:380,s:.92},vp:{x:480,y:362,s:1},ao:{x:480,y:394,s:1}};
+const G={thur:[[-2,-100],[10,-94]],wash:[[12,-80],[22,-80]],consume:[[-4,-118],[4,-118]],drink:[[-6,-110],[6,-110]],kiss:[[-20,-92],[20,-92]],joined:[[-4,-82],[4,-82]],orans:[[-48,-120],[48,-120]],extend:[[-16,-74],[16,-74]],elevHost:[[-6,-152],[6,-152]],elevChalice:[[-7,-148],[7,-148]],holdChalice:[[-7,-96],[7,-96]],elevBoth:[[-24,-136],[24,-136]],holdHost:[[-6,-98],[6,-98]],offer:[[-13,-96],[13,-96]],sign:[[-4,-84],[34,-142]],fraction:[[-11,-96],[11,-96]]};
+const P={x:165,y:398,s:.92,turn:0,h:[[-4,-82],[4,-82]]};
+const crowd=Array.from({length:14},(_,n)=>({row:n<7?0:1,x:(n%7)*140+(n<7?40:105)+(n*37%23),c:['#2a2230','#30262a','#262b33','#33282e'][n%4],lag:.04+(n*13%7)/120,off:22}));
+const OFF={stand:0,sit:22,kneel:34};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function rr(x,y,w,h,r){cx.beginPath();cx.roundRect(x,y,w,h,r);}
+function chalice(x,y,s=1){cx.fillStyle='#d9b448';cx.beginPath();cx.ellipse(x,y,9*s,2.5*s,0,0,7);cx.fill();cx.fillRect(x-1.5*s,y-14*s,3*s,14*s);cx.beginPath();cx.moveTo(x-9*s,y-26*s);cx.quadraticCurveTo(x,y-8*s,x+9*s,y-26*s);cx.closePath();cx.fill();cx.fillStyle='#f3dc8a';cx.fillRect(x-8*s,y-27*s,16*s,2*s);}
+function host(x,y,r=8){cx.fillStyle='#fffaf0';cx.beginPath();cx.arc(x,y,r,0,7);cx.fill();cx.strokeStyle='#e6dcc4';cx.lineWidth=1;cx.stroke();}
+function paten(x,y){cx.fillStyle='#d9b448';cx.beginPath();cx.ellipse(x,y,15,3.5,0,0,7);cx.fill();}
+
+function scene(t){
+ let g=cx.createLinearGradient(0,0,0,360);g.addColorStop(0,'#1b1424');g.addColorStop(1,'#4a3526');cx.fillStyle=g;cx.fillRect(0,0,W,360);
+ // abside
+ g=cx.createRadialGradient(480,230,20,480,230,260);g.addColorStop(0,'#8a6430');g.addColorStop(1,'#3a2818');cx.fillStyle=g;
+ cx.beginPath();cx.moveTo(290,360);cx.lineTo(290,210);cx.arc(480,210,190,Math.PI,0);cx.lineTo(670,360);cx.fill();
+ cx.strokeStyle='#c9a22755';cx.lineWidth=3;cx.beginPath();cx.moveTo(290,360);cx.lineTo(290,210);cx.arc(480,210,190,Math.PI,0);cx.lineTo(670,360);cx.stroke();
+ // vitrais e raios
+ for(const wx of [150,810]){
+  cx.save();cx.beginPath();cx.moveTo(wx-34,250);cx.lineTo(wx-34,110);cx.arc(wx,110,34,Math.PI,0);cx.lineTo(wx+34,250);cx.closePath();cx.clip();
+  const cols=['#2f5fa8','#b3121f','#d9b448','#2f7a4a','#6a3c96'];for(let yy=70;yy<250;yy+=20)for(let xx=wx-34;xx<wx+34;xx+=17){cx.fillStyle=cols[(xx+yy*3)%5|0];cx.fillRect(xx,yy,17,20);}
+  cx.strokeStyle='#120c10';cx.lineWidth=2;for(let yy=70;yy<250;yy+=20){cx.beginPath();cx.moveTo(wx-34,yy);cx.lineTo(wx+34,yy);cx.stroke();}cx.restore();
+  g=cx.createLinearGradient(wx,120,wx+(wx<480?160:-160),540);g.addColorStop(0,'#ffe9b033');g.addColorStop(1,'#ffe9b000');cx.fillStyle=g;
+  cx.beginPath();cx.moveTo(wx-30,140);cx.lineTo(wx+30,140);cx.lineTo(wx+(wx<480?260:-120),540);cx.lineTo(wx+(wx<480?120:-260),540);cx.fill();
+ }
+ // crucifixo
+ cx.fillStyle='#4a2f1a';cx.fillRect(474,48,12,190);cx.fillRect(430,82,100,11);
+ cx.fillStyle='#e8d6b8';cx.beginPath();cx.arc(480,98,6,0,7);cx.fill();cx.fillRect(477,104,6,40);
+ cx.strokeStyle='#e8d6b8';cx.lineWidth=4;cx.lineCap='round';cx.beginPath();cx.moveTo(440,88);cx.lineTo(477,108);cx.moveTo(520,88);cx.lineTo(483,108);cx.moveTo(479,144);cx.lineTo(479,168);cx.stroke();
+ // chão e degraus
+ g=cx.createLinearGradient(0,360,0,540);g.addColorStop(0,'#5a4636');g.addColorStop(1,'#2a1f1a');cx.fillStyle=g;cx.fillRect(0,360,W,260);
+ cx.fillStyle='#7a644e';cx.fillRect(250,376,460,6);cx.fillRect(220,404,520,6);
+ // cadeira e ambão
+ cx.fillStyle='#5a3620';cx.fillRect(632,358,4,40);cx.fillRect(666,358,4,40);cx.fillRect(628,352,46,7);cx.fillStyle='#f3e7c8';cx.fillRect(626,348,50,6);cx.fillRect(626,348,4,16);cx.fillRect(672,348,4,16);
+ if(!SP[1].mis&&!st.missalPlaced){cx.fillStyle='#b3121f';cx.fillRect(628,342,10,6);cx.fillStyle='#d9b448';cx.fillRect(628,341,10,1);}cx.fillStyle='#c8bfae';cx.fillRect(641,340,5,8);{if(!(SP[1].has||SP[2].has)){cx.fillRect(652,334,9,14);cx.beginPath();cx.ellipse(667,346,8,2.5,0,0,7);cx.fill();}}
+ cx.fillStyle='#120c10';cx.beginPath();cx.moveTo(8,398);cx.lineTo(8,300);cx.arc(42,300,34,Math.PI,0);cx.lineTo(76,398);cx.fill();cx.strokeStyle='#8a5a34';cx.lineWidth=4;cx.stroke();
+ cx.fillStyle='#5a3620';rr(136,276,58,120,6);cx.fill();cx.fillStyle='#8e1a22';rr(144,288,42,66,4);cx.fill();
+
+}
+function ambo(){
+ cx.fillStyle='#6a4428';rr(768,304,56,94,4);cx.fill();cx.fillStyle='#8a5c34';cx.fillRect(760,298,72,10);
+ cx.fillStyle='#f3e7c8';cx.fillRect(772,290,48,8);cx.fillStyle='#b3121f';cx.fillRect(795,290,3,14);
+ if(st.color){cx.fillStyle=COL[st.color][1];cx.fillRect(782,318,28,44);cx.fillStyle='#d9b448';cx.fillRect(794,324,4,30);cx.fillRect(786,334,20,4);}
+}
+function missalOnAltar(){const cur=st.playing&&st.steps[st.i]||{};return st.missalPlaced&&st.at==='altar'&&!!cur.onAlt;}
+function altar(t){
+ cx.fillStyle='#e9e0cf';cx.fillRect(350,298,260,10);
+ cx.fillStyle='#cfc3ad';cx.fillRect(356,308,248,74);
+ if(st.color){cx.fillStyle=COL[st.color][1];cx.fillRect(420,312,120,64);cx.fillStyle='#d9b448';cx.fillRect(476,320,8,48);cx.fillRect(462,334,36,7);}
+ for(const x of [372,398,424,536,562,588]){
+  cx.fillStyle='#d9b448';cx.fillRect(x-4,294,8,4);cx.fillStyle='#f6efe0';cx.fillRect(x-3,266,6,28);
+  const f=reduce?1:1+Math.sin(t/140+x)*.15+Math.random()*.08;
+  const gg=cx.createRadialGradient(x,260,1,x,260,26);gg.addColorStop(0,'#ffd27a66');gg.addColorStop(1,'#ffd27a00');cx.fillStyle=gg;cx.fillRect(x-26,234,52,52);
+  cx.fillStyle='#ffcf5a';cx.beginPath();cx.ellipse(x,258,4.5,9*f,0,0,7);cx.fill();
+ }
+ {if(missalOnAltar()){
+  cx.fillStyle='#d9b448';cx.beginPath();cx.moveTo(424,298);cx.lineTo(448,298);cx.lineTo(444,290);cx.lineTo(428,290);cx.fill();
+  cx.fillStyle='#b3121f';cx.fillRect(423,286,26,4);cx.fillStyle='#ffffff';cx.fillRect(424,277,11,10);cx.fillRect(437,277,11,10);cx.fillStyle='#8a8a9a';cx.fillRect(426,280,7,1);cx.fillRect(439,280,7,1);cx.fillRect(426,283,7,1);cx.fillRect(439,283,7,1);}}
+ if(st.gifts){
+  const hostHeld=['elevHost','holdHost','offer','fraction','elevBoth','consume'].includes(st.g),chHeld=['elevChalice','holdChalice','elevBoth','drink'].includes(st.g);
+  if(!hostHeld){paten(458,297);host(458,293,6);}
+  if(!chHeld)chalice(502,297,.9);
+ }
+}
+const COL={Verde:['#1f5a2c','#3a9a48','#5ad46a'],Roxo:['#3e1f66','#6a3c96','#9a6cc8'],Rosa:['#a8456e','#e07aa8','#f5b0cc'],Vermelho:['#7c0a14','#c8202c','#ff6060'],Branco:['#c8bfae','#f3ede0','#ffffff']};
+function priest(t){
+ let bow=0,back=st.at==='altar'&&AO()&&st.facing==='altar';
+ const ch=st.proc?null:chore();P.thur=ch&&ch.thur;
+ if(ch){P.x=ch.x;P.y=ch.y;back=ch.back;P.s+=(1-P.s)*.1;}
+ else if(st.proc){const ps=procAt(),b=ps.walk&&!reduce?Math.abs(Math.sin(performance.now()/120))*-3:0;P.x=ps.p.x;P.y=ps.p.y+b;P.s=.92+.08*clamp((ps.p.y-398)/40);back=ps.back;bow=ps.bow;st.g=ps.bow?'kiss':'joined';}
+ else{const tgt=st.at==='altar'?(AO()?POS.ao:POS.vp):POS[st.at];
+ const a=reduce?1:.06;P.x+=(tgt.x-P.x)*a;P.y+=(tgt.y-P.y)*a;P.s+=(tgt.s-P.s)*a;}
+ P.sit=(P.sit||0)+((st.psit?1:0)-(P.sit||0))*(reduce?1:.1);
+ P.turn+=((back?1:0)-P.turn)*(reduce?1:.15);
+ const hg=P.thur?G.thur:ch&&ch.g?G[ch.g]:G[st.g]||G.joined;for(let n=0;n<2;n++)for(let m=0;m<2;m++)P.h[n][m]+=(hg[n][m]-P.h[n][m])*(reduce?1:.12);
+ const sx=Math.max(.12,Math.abs(1-2*P.turn)),isBack=P.turn>.5,C=st.color?COL[st.color]:null,rom=cfg.vest==='rom',GD='#d9b448',GK='#8a5a34',sy=22*P.sit+8*bow;
+ cx.save();cx.translate(P.x,P.y);cx.scale(P.s*sx,P.s);
+ cx.fillStyle='#0005';cx.beginPath();cx.ellipse(0,2,34,6,0,0,7);cx.fill();
+ const high=P.h[0][1]<-125||P.h[1][1]<-125||Math.abs(P.h[0][0])>30;
+ const AG=[0,1].map(n=>{const sh=n?21:-21,[hx,hy]=P.h[n],f=.62;return{sh,hx,hy,ex:(sh+hx)/2+(sh<0?-8:8),ey:(-104+hy)/2+6,Ex:sh+(hx-sh)*f,Ey:-104+(hy+104)*f,sd:sh<0?-1:1};});
+ const gothic=C&&!rom;
+ const arms=()=>{for(const [n,sh] of [[0,-21],[1,21]]){const [hx,hy]=P.h[n],ex=(sh+hx)/2+(sh<0?-8:8),ey=(-104+hy)/2+6;
+  cx.lineCap='round';
+  if(gothic){const g=AG[n];cx.strokeStyle='#f3efe6';cx.lineWidth=9;cx.beginPath();cx.moveTo(g.Ex,g.Ey);cx.lineTo(hx,hy);cx.stroke();}
+  else{cx.strokeStyle='#f3efe6';cx.lineWidth=10;cx.beginPath();cx.moveTo(sh,-104);cx.quadraticCurveTo(ex,ey,hx,hy);cx.stroke();}
+  cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(hx,hy,5,0,7);cx.fill();}
+  const m=[(P.h[0][0]+P.h[1][0])/2,(P.h[0][1]+P.h[1][1])/2];
+  if(st.g==='elevHost'||st.g==='holdHost')host(m[0],m[1]-10);
+  if(st.g==='offer'){paten(m[0],m[1]-3);host(m[0],m[1]-7,6);}
+  if(st.g==='fraction'){host(P.h[0][0]+2,m[1]-9,6);host(P.h[1][0]-2,m[1]-9,6);}
+  if(st.g==='elevChalice'||st.g==='holdChalice')chalice(m[0],m[1]+4,1);
+  if(st.g==='consume')host(m[0],m[1]-4,6);
+  if(st.g==='drink')chalice(m[0],m[1]+12,1);
+  if(st.g==='elevBoth'){paten(P.h[0][0],P.h[0][1]-4);host(P.h[0][0],P.h[0][1]-8,6);chalice(P.h[1][0],P.h[1][1]+4,1);}
+  if(['elevHost','elevChalice','elevBoth'].includes(st.g)){const gg=cx.createRadialGradient(m[0],m[1]-14,2,m[0],m[1]-14,60);gg.addColorStop(0,'#fff3c855');gg.addColorStop(1,'#fff3c800');cx.fillStyle=gg;cx.fillRect(m[0]-60,m[1]-74,120,120);}
+ };
+ const grad=()=>{const g=cx.createLinearGradient(-48,0,48,0);g.addColorStop(0,C[0]);g.addColorStop(.5,C[1]);g.addColorStop(1,C[0]);return g;};
+ if(isBack&&!high){cx.save();cx.translate(0,sy);arms();cx.restore();}
+ if(isBack&&P.thur){cx.save();cx.translate(0,sy);const c=censer(P.h[1][0],P.h[1][1]-10,.6,t);emitAt({x:c.x,y:-140});cx.restore();}
+ // alva (parte de baixo), com renda na romana
+ cx.fillStyle='#f3efe6';cx.beginPath();cx.moveTo(-20,-62+sy);cx.lineTo(-25-4*P.sit,0);cx.lineTo(25+4*P.sit,0);cx.lineTo(20,-62+sy);cx.fill();
+ if(rom&&C){cx.fillStyle='#ffffff';cx.fillRect(-25,-16,50,16);cx.fillStyle='#c8bfae';for(let x=-23;x<23;x+=6){cx.fillRect(x,-10,3,3);cx.fillRect(x+3,-5,2,2);}}
+ cx.fillStyle='#1d1612';cx.beginPath();cx.ellipse(-9,0,7,3,0,0,7);cx.ellipse(9,0,7,3,0,0,7);cx.fill();
+ cx.save();cx.translate(0,sy);
+ if(!C){ // ainda sem casula: alva, amito e cíngulo
+  cx.fillStyle='#f3efe6';cx.beginPath();cx.moveTo(-14,-113);cx.lineTo(-27,-100);cx.lineTo(-23,-58);cx.lineTo(23,-58);cx.lineTo(27,-100);cx.lineTo(14,-113);cx.fill();
+  cx.fillStyle='#c8bfae';cx.fillRect(-23,-74,46,3);cx.fillRect(-3,-74,3,22);
+ }else if(rom){ // casula romana (guitarra)
+  if(!isBack){cx.fillStyle=C[1];cx.fillRect(-12,-52,8,26);cx.fillRect(4,-52,8,26);cx.fillStyle=GD;cx.fillRect(-12,-28,8,3);cx.fillRect(4,-28,8,3);cx.fillRect(-9,-40,2,8);cx.fillRect(-11,-37,6,2);cx.fillRect(7,-40,2,8);cx.fillRect(5,-37,6,2);}
+  cx.beginPath();
+  if(isBack)cx.roundRect(-28,-111,56,68,12);
+  else{cx.moveTo(-24,-111);cx.lineTo(24,-111);cx.quadraticCurveTo(27,-98,18,-86);cx.quadraticCurveTo(25,-68,25,-54);cx.quadraticCurveTo(25,-46,0,-46);cx.quadraticCurveTo(-25,-46,-25,-54);cx.quadraticCurveTo(-25,-68,-18,-86);cx.quadraticCurveTo(-27,-98,-24,-111);cx.closePath();}
+  cx.fillStyle=grad();cx.fill();cx.strokeStyle=GD;cx.lineWidth=3;cx.stroke();
+  cx.fillStyle=GD;cx.fillRect(-6,-109,12,isBack?64:61);cx.fillStyle=GK;cx.fillRect(-1.5,-106,3,isBack?58:55);
+  if(isBack){cx.fillStyle=GD;cx.fillRect(-22,-98,44,11);cx.fillStyle=GK;cx.fillRect(-19,-93.5,38,3);}
+  else{cx.fillStyle=GK;cx.fillRect(-4,-98,8,2);}
+ }else{ // casula gótica: um só tecido, longo, caindo reto dos ombros e drapeado nos antebraços
+  const HEM=-15,[L,R]=AG;
+  const O=g=>Math.abs(g.Ex)>Math.abs(g.ex)+2?{x:g.Ex,y:g.Ey+2}:{x:g.ex+g.sd*3,y:g.ey};
+  const lift=g=>clamp((-g.hy-96)/40),cr=g=>({x:g.sd*31,y:HEM-2-lift(g)*14});
+  const side=(g,down)=>{const o=O(g),c=cr(g);if(down){cx.quadraticCurveTo(g.sh+g.sd*2,(-106+o.y)/2,o.x,o.y);cx.quadraticCurveTo(o.x,c.y-4,c.x,c.y);}
+   else{cx.quadraticCurveTo(o.x,c.y-4,o.x,o.y);cx.quadraticCurveTo(g.sh+g.sd*2,(-106+o.y)/2,g.sh+g.sd*2,-106);}};
+  const path=()=>{cx.beginPath();cx.moveTo(-11,-116);cx.quadraticCurveTo(-19,-116,L.sh-2,-106);side(L,true);
+   const cl=cr(L),crr=cr(R);cx.quadraticCurveTo(0,HEM+3,crr.x,crr.y);side(R,false);cx.quadraticCurveTo(19,-116,11,-116);cx.closePath();};
+  path();const g=cx.createLinearGradient(-40,0,40,0);g.addColorStop(0,C[0]);g.addColorStop(.25,C[1]);g.addColorStop(.5,C[2]);g.addColorStop(.75,C[1]);g.addColorStop(1,C[0]);cx.fillStyle=g;cx.fill();
+  cx.save();path();cx.clip();cx.strokeStyle=C[0];cx.lineWidth=2.5;
+  for(const q of AG){const o=O(q),c=cr(q);
+   cx.beginPath();cx.moveTo(q.Ex*.9,q.Ey+6);cx.quadraticCurveTo(q.sd*16,-50,q.sd*11,HEM);cx.stroke();
+   cx.beginPath();cx.moveTo(o.x*.9,o.y+10);cx.quadraticCurveTo(c.x*.85,-45,c.x*.72,HEM);cx.stroke();
+   cx.beginPath();cx.moveTo(q.sd*15,-104);cx.lineTo(q.sd*15,-92);cx.stroke();}
+  cx.restore();
+  cx.strokeStyle='#00000066';cx.lineWidth=1.5;path();cx.stroke();
+  cx.lineCap='butt';
+  if(isBack){cx.strokeStyle=GD;cx.lineWidth=11;cx.beginPath();cx.moveTo(-24,-109);cx.lineTo(0,-88);cx.lineTo(24,-109);cx.moveTo(0,-88);cx.lineTo(0,HEM+2);cx.stroke();cx.strokeStyle=GK;cx.lineWidth=2.5;cx.stroke();}
+  else{cx.fillStyle=GD;cx.fillRect(-7,-113,14,98);cx.fillStyle=GK;cx.fillRect(-7,-113,2,98);cx.fillRect(5,-113,2,98);cx.fillStyle=C[2];for(let y=-104;y<-20;y+=22)cx.fillRect(-2,y,4,4);}
+  cx.strokeStyle=GD;cx.lineWidth=2.5;cx.beginPath();cx.moveTo(-11,-116);cx.quadraticCurveTo(0,-110,11,-116);cx.stroke();
+ }
+ cx.fillStyle='#f3efe6';cx.fillRect(-9,-116,18,6);
+ cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(0,-125,13,0,7);cx.fill();
+ cx.fillStyle='#4a3426';cx.beginPath();if(isBack)cx.arc(0,-126,13.5,0,7);else cx.arc(0,-129,13.5,Math.PI*1.05,Math.PI*1.95);cx.fill();
+ if(!isBack){cx.fillStyle='#2a1d14';cx.fillRect(-6,-126,3,3);cx.fillRect(3,-126,3,3);}
+ if(!isBack||high)arms();
+ if(P.thur&&!isBack){const c=censer(P.h[1][0],P.h[1][1],.9,t);emitAt(c);}
+ cx.restore();cx.restore();
+}
+const CAM=40,clamp=p=>Math.min(1,Math.max(0,p)),ease=p=>p<.5?2*p*p:1-(-2*p+2)**2/2,lerp=(a,b,p)=>a+(b-a)*p;
+const INC=()=>cfg.inc==='1',procT=()=>INC()?7.8:8.8;
+const HOME=[{x:30,y:398},{x:1000,y:400},{x:1000,y:400}],CROSS={x:333,y:396},THH={x:30,y:398},WAIT={x:398,y:430},CRED=[null,{x:664,y:402},{x:698,y:404}],BOOK={x:224,y:406},ALT={x:420,y:404},STA=[null,{x:652,y:410},{x:628,y:416}];
+const SP=HOME.map(h=>({...h})),TH={...THH},SMK=[];
+function procAt(){const t=st.proc?(performance.now()-st.proc)/1000:99,dT=INC()?.6:0;
+ const lane=(d,x)=>{const p=ease(clamp((t-d)/4));return{x,y:lerp(660,428,p)};};
+ const go=(a,b,t0,dur)=>{const q=ease(clamp((t-t0)/dur));return{x:lerp(a.x,b.x,q),y:lerp(a.y,b.y,q)};};
+ const th=lane(0,480),cr=lane(dT,480),c1=lane(dT+.7,452),c2=lane(dT+.7,508);
+ const crA=dT+4,placed=t>crA+1.3,cA=dT+4.7;
+ const srv=[t<crA?cr:!placed?go(cr,CROSS,crA,1.3):go(CROSS,HOME[0],crA+1.3,2.2),t<cA?c1:go(c1,HOME[1],cA,2.4),t<cA?c2:go(c2,HOME[2],cA,2.4)];
+ const F=POS.frente,pa=lane(dT+1.4,480),pA=dT+5.4;let p,bk=true,bw=0,walk=true;
+ if(t<pA)p=pa;else if(t<pA+1.5){p=go(pa,F,pA,.6);bw=t>pA+.65&&t<pA+1.35?1:0;walk=t<pA+.6;}
+ else if(INC()){p=F;walk=false;}else{p=go(F,POS.cadeira,pA+1.5,1.8);bk=false;walk=t<pA+3.3;}
+ if(t>=procT()&&st.proc){st.proc=0;const at=INC()?'frente':'cadeira';st.at=at;P.x=POS[at].x;P.y=POS[at].y;setTimeout(next,0);}
+ return{p,back:bk,bow:bw,walk,srv,th:INC()?(t<4?th:go(th,WAIT,4,1.4)):null,t,placed,candles:true,backs:[t<crA+.1,t<cA+.1,t<cA+.1]};}
+function chore(){const pa=st.pa;if(!pa)return null;const t=(performance.now()-pa.t0)/1000;
+ if(pa.k==='incAltar'){if(t>7){if(t>pa.dur)st.pa=null;return null;}const F={x:480,y:405};
+  if(t<.8){const q=ease(clamp(t/.8));return{x:lerp(pa.from.x,F.x,q),y:lerp(pa.from.y,F.y,q),back:true,thur:1};}
+  if(t<2.3)return{...F,back:true,thur:1};
+  if(t<6.3){const a=Math.PI/2+(t-2.3)/4*Math.PI*2;return{x:480+178*Math.cos(a),y:383+22*Math.sin(a),back:Math.sin(a)>0,thur:1};}
+  return{...F,back:true,thur:1};}
+ if(pa.k==='incBook'){if(t>2.8){st.pa=null;return null;}return{x:736,y:404,back:false,thur:t>.4?1:0};}
+ if(pa.k==='missal'){if(t>3.4)st.pa=null;return null;}
+ if(pa.k==='lav'){if(t>4.9){st.pa=null;return null;}return{x:POS.lav.x,y:POS.lav.y,back:false,g:t>1.2&&t<3.8?'wash':'joined'};}
+ return null;}
+const lavT=()=>st.pa&&st.pa.k==='lav'?(performance.now()-st.pa.t0)/1000:-9;
+function censer(hx,hy,amp,t){const a=Math.sin(t/170)*amp,L=44,x=hx+Math.sin(a)*L,y=hy+Math.cos(a)*L;
+ cx.strokeStyle='#d9b448';cx.lineWidth=2.5;cx.beginPath();cx.moveTo(hx,hy);cx.lineTo(x,y-8);cx.stroke();
+ cx.fillStyle='#d9b448';cx.beginPath();cx.ellipse(x,y,8,6,0,0,7);cx.fill();cx.beginPath();cx.moveTo(x-7,y-3);cx.lineTo(x,y-14);cx.lineTo(x+7,y-3);cx.fill();
+ cx.fillStyle='#ff6060';cx.fillRect(x-3,y-2,6,2);return{x,y:y-10};}
+function emitAt(c){const p=cx.getTransform().transformPoint(c),x=p.x*W/LW,y=p.y*H/LH+CAM;
+ if(SMK.length<200&&Math.random()<.7)SMK.push({x,y,vx:(Math.random()-.5)*.5,vy:-.5-Math.random()*.5,r:4+Math.random()*3,l:1});}
+function smoke(){cx.save();for(let i=SMK.length-1;i>=0;i--){const p=SMK[i];p.x+=p.vx;p.y+=p.vy;p.r+=.07;p.l-=reduce?.03:.007;
+ if(p.l<=0){SMK.splice(i,1);continue;}cx.fillStyle=`rgba(226,222,236,${p.l*.5})`;cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fill();}cx.restore();}
+function server(o,it,back,kneel,t,swing,pour){
+ cx.save();cx.translate(o.x,o.y+(kneel?12:0));cx.scale(.8,.8);
+ if(it==='thur'&&back){const c=censer(8,-96,swing?.6:.12,t);if(swing||Math.random()<.2)emitAt({x:c.x,y:-130});}
+ cx.fillStyle='#c8202c';cx.beginPath();cx.moveTo(-16,-100);cx.lineTo(-19,0);cx.lineTo(19,0);cx.lineTo(16,-100);cx.fill();
+ cx.fillStyle='#140f1c';cx.fillRect(-13,-4,11,4);cx.fillRect(2,-4,11,4);
+ cx.fillStyle='#f3efe6';cx.beginPath();cx.moveTo(-18,-106);cx.lineTo(-25,-56);cx.lineTo(25,-56);cx.lineTo(18,-106);cx.fill();
+ cx.fillStyle='#c8bfae';for(let x=-22;x<22;x+=6)cx.fillRect(x,-61,3,3);
+ let hl=[-6,-90],hr=[6,-90];
+ if(it==='cross'){cx.fillStyle='#8a5a34';cx.fillRect(-2,-200,4,150);cx.fillStyle='#d9b448';cx.fillRect(-2.5,-228,5,32);cx.fillRect(-11,-219,22,5);cx.fillStyle='#f3e7c8';cx.fillRect(-1,-214,2,10);}
+ if(it==='candle'){cx.fillStyle='#d9b448';cx.fillRect(-2,-150,4,70);cx.fillRect(-6,-152,12,3);cx.fillStyle='#f6efe0';cx.fillRect(-3,-170,6,18);
+  const gg=cx.createRadialGradient(0,-176,1,0,-176,22);gg.addColorStop(0,'#ffd27a66');gg.addColorStop(1,'#ffd27a00');cx.fillStyle=gg;cx.fillRect(-22,-198,44,44);
+  cx.fillStyle='#ffcf5a';cx.beginPath();cx.ellipse(0,-176,4,8*(reduce?1:1+Math.sin(t/130)*.15),0,0,7);cx.fill();}
+ if(it==='jug'){hl=[-16,-100];hr=[-8,-96];cx.save();cx.translate(-14,-102);cx.rotate(pour?-1.1:0);cx.fillStyle='#c8bfae';cx.fillRect(-6,-14,12,18);cx.fillRect(-9,-14,5,4);cx.fillStyle='#ffffff';cx.fillRect(-4,-12,3,14);cx.restore();}
+ if(it==='missal'){hl=[-10,-88];hr=[4,-88];cx.fillStyle='#b3121f';cx.fillRect(-12,-104,18,22);cx.fillStyle='#d9b448';cx.fillRect(-4,-100,2,12);cx.fillRect(-7,-96,8,2);cx.fillStyle='#f3e7c8';cx.fillRect(5,-102,2,18);}
+ if(it==='missalOpen'){hl=[-36,-104];hr=[-6,-104];cx.fillStyle='#b3121f';cx.fillRect(-38,-108,34,4);cx.fillStyle='#ffffff';cx.fillRect(-37,-124,15,17);cx.fillRect(-21,-124,15,17);cx.fillStyle='#8a8a9a';for(let y=-120;y<-110;y+=4){cx.fillRect(-35,y,11,1.5);cx.fillRect(-19,y,11,1.5);}cx.fillStyle='#b3121f';cx.fillRect(-22,-124,1.5,17);}
+ if(it==='basin'){hl=[-24,-90];hr=[-4,-90];cx.fillStyle='#c8bfae';cx.beginPath();cx.ellipse(-14,-92,17,6,0,0,7);cx.fill();cx.fillStyle='#5fa0e8';cx.beginPath();cx.ellipse(-14,-94,12,3,0,0,7);cx.fill();cx.fillStyle='#f3e7c8';cx.fillRect(2,-92,6,20);}
+ if(!back||it==='cross'||it==='candle'){cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(hl[0],hl[1],4.5,0,7);cx.arc(hr[0],hr[1],4.5,0,7);cx.fill();}
+ if(it==='thur'&&!back){const c=censer(10,-88,swing?.9:.15,t);if(swing||Math.random()<.2)emitAt(c);}
+ cx.fillStyle='#d9a47a';cx.beginPath();cx.arc(0,-118,12,0,7);cx.fill();
+ cx.fillStyle='#5c3c28';cx.beginPath();if(back)cx.arc(0,-119,12.5,0,7);else cx.arc(0,-122,12.5,Math.PI*1.05,Math.PI*1.95);cx.fill();
+ if(!back){cx.fillStyle='#2a1d14';cx.fillRect(-5,-119,2.5,2.5);cx.fillRect(3,-119,2.5,2.5);}
+ cx.restore();}
+function crossStand(){const {x,y}=CROSS;cx.fillStyle='#5a3620';cx.fillRect(x-11,y-6,22,6);cx.fillStyle='#8a5a34';cx.fillRect(x-1.5,y-162,3,158);
+ cx.fillStyle='#d9b448';cx.fillRect(x-2,y-184,4,26);cx.fillRect(x-9,y-177,18,4);cx.fillStyle='#f3e7c8';cx.fillRect(x-1,y-172,2,8);}
+function servers(t){if(!st.servers)return;const now=performance.now();
+ if(st.proc){const ps=procAt();if(ps.placed)crossStand();
+  ps.srv.forEach((o,n)=>{Object.assign(SP[n],o);server(o,n===0?(ps.placed?null:'cross'):'candle',ps.backs[n],false,t);});
+  if(ps.th){Object.assign(TH,ps.th);server(ps.th,'thur',ps.t<4.1,false,t);}return;}
+ crossStand();
+ const cur=st.playing&&st.steps[st.i]||{},k=reduce?1:.06,lt=lavT(),lavStep=cur.pa==='lav',bob=()=>reduce?0:-Math.abs(Math.sin(now/110))*3;
+ const away=(p,h)=>Math.hypot(p.x-h.x,p.y-h.y)>8;
+ if(lt>3.6)st.lavDone=true;
+ const step=(p,tg,n,item,back,kn,sw,pour)=>{const d=Math.hypot(tg.x-p.x,tg.y-p.y);p.x+=(tg.x-p.x)*k;p.y+=(tg.y-p.y)*k;
+  if(away(p,n<0?THH:HOME[n]))server({x:p.x,y:p.y+(d>3?bob():0)},item,back,kn,t,sw,pour);return d;};
+ step(SP[0],HOME[0],0,null,false,false);
+ const pour=lt>1.4&&lt<3.6;
+ for(const n of [1,2]){const p=SP[n],near=q=>Math.hypot(p.x-q.x,p.y-q.y)<6;let tg=lavStep?((lt>-.4&&lt<3.9)?STA[n]:CRED[n]):HOME[n];
+  if(lavStep&&near(CRED[n]))p.has=!st.lavDone;
+  if(n===1&&cur.bringMissal&&!st.missalPlaced){if(!p.mis){tg=CRED[1];if(near(CRED[1]))p.mis=true;}else{tg=ALT;if(near(ALT)){p.mis=false;st.missalPlaced=true;}}}
+  else if(n===1&&(st.book||p.mis)){tg=CRED[1];if(near(CRED[1]))p.mis=st.book;if(st.book&&p.mis)tg=BOOK;}
+  const item=p.has?(n===1?'jug':'basin'):p.mis?(st.book&&near(BOOK)?'missalOpen':'missal'):null;
+  step(p,tg,n,item,false,false,false,pour&&n===1);}
+ if(pour){cx.fillStyle='#5fa0e8';for(let i=0;i<5;i++){const f=((now/400)+i/5)%1;cx.fillRect(lerp(626,618,f),lerp(318,338,f),3,4);}}
+ if(INC()){const pa=st.pa,q=pa?(now-pa.t0)/1000:0,has=pa&&(pa.k==='incAltar'&&q<7||pa.k==='incBook');let tt=THH,sw=false,kn=false;
+  if(cur.pa==='incAltar'||(pa&&pa.k==='incAltar'))tt=WAIT;
+  if(cur.pa==='incBook'||(pa&&pa.k==='incBook'))tt={x:700,y:414};
+  if(pa&&pa.k==='incAltar'&&pa.dur>7&&q>7.2){tt={x:520,y:436};sw=q>7.9;}
+  let bk=false;if(cur.thr){tt={x:590,y:432};bk=true;kn=st.pos==='kneel';sw=st.g==='elevHost'||st.g==='elevChalice';}
+  step(TH,tt,-1,has?null:'thur',bk,kn,sw);}
+}
+const LR={x:1010,y:384};
+function lector(){
+ const tx=st.lector?796:1010;LR.x+=(tx-LR.x)*(reduce?1:.035);if(LR.x>995)return;
+ const walk=Math.abs(tx-LR.x)>3,bob=walk&&!reduce?Math.abs(Math.sin(performance.now()/110))*-3:0;
+ cx.save();cx.translate(LR.x,LR.y+bob);cx.scale(.88,.88);
+ cx.fillStyle='#2c2440';cx.fillRect(-12,-48,10,48);cx.fillRect(2,-48,10,48);cx.fillStyle='#140f1c';cx.fillRect(-13,-4,12,4);cx.fillRect(1,-4,12,4);
+ cx.fillStyle='#2f5fa8';cx.beginPath();cx.roundRect(-20,-108,40,64,8);cx.fill();
+ cx.strokeStyle='#2f5fa8';cx.lineWidth=9;cx.lineCap='round';cx.beginPath();
+ if(walk){cx.moveTo(-18,-100);cx.lineTo(-22,-62);cx.moveTo(18,-100);cx.lineTo(22,-62);}else{cx.moveTo(-18,-100);cx.lineTo(-10,-80);cx.moveTo(18,-100);cx.lineTo(10,-80);}cx.stroke();
+ if(!walk){cx.fillStyle='#f3e7c8';cx.fillRect(-13,-90,26,14);cx.fillStyle='#b3121f';cx.fillRect(-1,-90,2,14);}
+ cx.fillStyle='#c08a4e';cx.beginPath();cx.arc(0,-122,12,0,7);cx.fill();
+ cx.fillStyle='#1d1a2b';cx.beginPath();cx.arc(0,-125,12.5,Math.PI,0);cx.fill();cx.fillRect(-13,-126,5,20);cx.fillRect(8,-126,5,20);
+ cx.fillStyle='#2a1d14';cx.fillRect(-5,-123,2.5,2.5);cx.fillRect(3,-123,2.5,2.5);
+ cx.restore();
+}
+function people(){
+ for(const p of crowd){const tg=st.playing?OFF[st.pos]:OFF.sit;p.off+=(tg-p.off)*(reduce?1:p.lag);
+  const s=p.row?1.05:.85,base=p.row?560:528,top=base-(78-p.off)*s;
+  cx.fillStyle=p.c;rr(p.x-24*s,top+14*s,48*s,base-top,16*s);cx.fill();
+  cx.beginPath();cx.arc(p.x,top+4*s,12*s,0,7);cx.fill();
+  cx.strokeStyle='#e9c47a40';cx.lineWidth=2;cx.beginPath();cx.arc(p.x,top+4*s,12*s,Math.PI*1.1,Math.PI*1.9);cx.stroke();}
+ cx.fillStyle='#3a2516';cx.fillRect(0,512,W,10);cx.fillRect(0,536,W,10);
+}
+const pc=document.createElement('canvas');pc.width=LW;pc.height=LH;const pcx=pc.getContext('2d');
+const sc=document.createElement('canvas');sc.width=LW;sc.height=LH;const scx=sc.getContext('2d');
+function drawPriest(t){
+ const m=cx,hy=P.y-110*P.s,gl=m.createRadialGradient(P.x,hy,4,P.x,hy,95);gl.addColorStop(0,'#ffe9b04d');gl.addColorStop(1,'#ffe9b000');m.fillStyle=gl;m.fillRect(P.x-95,hy-95,190,190);
+ sprite(priest,t);
+}
+function sprite(fn,t){const m=cx;
+ pcx.setTransform(1,0,0,1,0,0);pcx.clearRect(0,0,LW,LH);pcx.setTransform(LW/W,0,0,LH/H,0,-CAM*LH/H);cx=pcx;fn(t);cx=m;
+ scx.globalCompositeOperation='source-over';scx.clearRect(0,0,LW,LH);scx.drawImage(pc,0,0);scx.globalCompositeOperation='source-in';scx.fillStyle='#000';scx.fillRect(0,0,LW,LH);
+ m.save();m.setTransform(1,0,0,1,0,0);for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])m.drawImage(sc,dx,dy);m.drawImage(pc,0,0);m.restore();
+}
+function placeBubble(){if(!vb.hidden){const ov=getComputedStyle(panel).position==='absolute',right=P.x<480;vb.style.left=right?'auto':'4%';vb.style.right=right?'4%':'auto';if(ov){vb.style.bottom='auto';vb.style.top=Math.max(40,panel.offsetTop-vb.offsetHeight-16)+'px';}else{vb.style.top='';vb.style.bottom='';}}
+ if(pb.hidden)return;const x=Math.min(76,Math.max(24,P.x/W*100)),y=(P.y-CAM-(st.g.startsWith('elev')?178:150)*P.s)/H*100;pb.style.left=x+'%';pb.style.top=Math.max(18,y)+'%';}
+function frame(t){
+ {const nx=document.getElementById('next');if(nx&&nx.disabled&&!st.pa){nx.disabled=false;nx.textContent=nx.dataset.l;}}
+ cx.setTransform(LW/W,0,0,LH/H,0,-CAM*LH/H);scene(t);
+ const behind=P.y<390;if(behind)drawPriest(t);altar(t);if(!behind)drawPriest(t);sprite(servers,t);sprite(lector,t);ambo();smoke();people();placeBubble();
+ cx.setTransform(1,0,0,1,0,0);quant();vx.imageSmoothingEnabled=false;vx.drawImage(oc,0,0,cv.width,cv.height);
+ requestAnimationFrame(frame);
+}
+fit();setup();requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
