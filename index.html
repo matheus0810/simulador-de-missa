@@ -327,7 +327,7 @@ function sched(){while(nextT<ac.currentTime+.2){const bar=PRE[(stepN>>4)%PRE.len
  if(j===1)tone(bar[1],nextT,S16*6.8,'triangle',.07,musG);
  if(j>=2)pluck(bar[FIG[j]],nextT,.032,S16*3);
  nextT+=S16;stepN++;}}
-function music(){if(!ac)return;const s=st.steps[st.i]||{},hush=!!s.ep||!st.playing;
+function music(){if(!ac)return;const s=st.steps[st.i]||{},hush=!st.playing;
  const want=musicOn&&!hush?1:0;musG.gain.cancelScheduledValues(ac.currentTime);musG.gain.setTargetAtTime(want,ac.currentTime,.4);
  if(musicOn&&!timer){nextT=ac.currentTime+.05;timer=setInterval(sched,40);}
  if(!musicOn&&timer){clearInterval(timer);timer=null;}}

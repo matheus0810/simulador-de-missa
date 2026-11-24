@@ -14,7 +14,7 @@ Abra `index.html` no navegador, ou acesse a versão publicada na Vercel.
 
 Os textos litúrgicos aparecem resumidos para o jogo; alguns trechos em português são adaptações. Para celebrar de verdade, use o Missal Romano.
 
-A música de fundo é uma versão 8 bits do Prelúdio em Dó (BWV 846) de J. S. Bach, em domínio público.
+A música de fundo, que toca a Missa toda, é uma versão 8 bits do Prelúdio em Dó (BWV 846) de J. S. Bach, em domínio público.
 
 ## Publicação
 
