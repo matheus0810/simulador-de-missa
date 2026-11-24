@@ -160,7 +160,7 @@ const DAYS=[
  {n:'o Natal do Senhor',c:'Branco',gl:1,pf:'Prefácio do Natal'},
  {n:'a Solenidade de Cristo Rei',c:'Branco',gl:1,pf:'Prefácio de Cristo Rei'}];
 const CORES=['Verde','Roxo','Rosa','Vermelho','Branco'],FEM={Verde:'verde',Roxo:'roxa',Rosa:'rosa',Vermelho:'vermelha',Branco:'branca'};
-const cfg={ep:4,lang:'la',ori:'ao',vest:'got',inc:'1',mc:'0'};
+const cfg={ep:2,lang:'pt',ori:'vp',vest:'got',inc:'1',mc:'1'};
 
 function build(){
  const L=cfg.lang==='la',e=cfg.ep,others=[1,2,3,4].filter(n=>n!==e).slice(0,2);
@@ -187,7 +187,7 @@ function build(){
  {ph:'Ato penitencial',rub:'Convide a assembleia ao ato penitencial:',o:['Irmãos e irmãs, reconheçamos as nossas culpas para celebrarmos dignamente os santos mistérios.','Demos graças ao Senhor, nosso Deus.','Felizes os convidados para a Ceia do Senhor.'],r:'Confesso a Deus todo-poderoso…',g:'joined',pos:'stand'},
  Dy.gl?{ph:'Glória',rub:'Hoje é '+Dy.n+'. O que vem agora?',o:['Entoar o Glória','Omitir o Glória e passar à oração do dia','Rezar o Credo'],say:false,r:'Glória a Deus nas alturas…',g:'joined',pos:'stand'}
   :{ph:'Glória',rub:'Hoje é '+Dy.n+'. O que vem agora?',o:['Omitir o Glória e passar à oração do dia','Entoar o Glória','Rezar o Credo'],say:false,g:'joined',pos:'stand',note:'No Advento e na Quaresma (inclusive no Domingo de Ramos), não se diz o Glória aos domingos.'},
- (M?mc({ph:'Oração do dia',missal:1,pa:'missal',mcAct:'Indica ao coroinha que leve o Missal até a cadeira',rub:'O padre vai dizer "Oremos". O que você providencia?',o:['Mandar o coroinha levar o Missal aberto até a cadeira','Mandar levar o Lecionário','Esperar o padre pedir o livro'],g:'joined',pos:'stand',note:'As orações do padre estão no Missal. O cerimoniário antecipa para o padre não ficar esperando (IGMR 127).'}):{ph:'Oração do dia',missal:1,pa:'missal',act:'Faz sinal ao coroinha para trazer o Missal',rub:'Antes de rezar: qual livro o coroinha deve trazer?',o:['O Missal Romano','O Lecionário','O Evangeliário'],say:false,g:'joined',pos:'stand',note:'As orações do padre estão no Missal. O Lecionário traz as leituras, e o Evangeliário, o Evangelho.'}),
+ (M?mc({ph:'Oração do dia',missal:1,pa:'missal',mcAct:'Leva o Missal até a cadeira',rub:'O padre vai dizer "Oremos". O que você providencia?',o:['Levar o Missal aberto até a cadeira e segurá-lo para o padre','Levar o Lecionário','Esperar o padre pedir o livro'],g:'joined',pos:'stand',note:'As orações do padre estão no Missal. O cerimoniário antecipa para o padre não ficar esperando (IGMR 127).'}):{ph:'Oração do dia',missal:1,pa:'missal',act:'Faz sinal ao coroinha para trazer o Missal',rub:'Antes de rezar: qual livro o coroinha deve trazer?',o:['O Missal Romano','O Lecionário','O Evangeliário'],say:false,g:'joined',pos:'stand',note:'As orações do padre estão no Missal. O Lecionário traz as leituras, e o Evangeliário, o Evangelho.'}),
  {ph:'Oração do dia',holdBook:1,rub:'De mãos juntas, convide à oração; depois, abra os braços:',o:['Oremos.','Ide em paz.','A paz do Senhor esteja sempre convosco.'],r:'Amém.',g:'orans',pos:'stand'},
  {ph:'Liturgia da Palavra',lector:1,sitOk:1,rub:'O leitor vai ao ambão para a primeira leitura e o salmo. E você?',o:['Sentar e ouvir com atenção','Ir ao altar preparar o cálice','Ficar de pé ao lado do leitor'],say:false,r:'Palavra do Senhor. — Graças a Deus.',g:'joined',pos:'sit'},
  ...(M&&INX?[mc({ph:'Aclamação ao Evangelho',mcAct:'Leva o turíbulo ao padre',rub:'Começa a aclamação ao Evangelho. O que você faz?',o:['Levar o turíbulo ao padre para ele pôr o incenso','Levar o turíbulo até o povo','Mandar apagar as velas'],g:'joined',pos:'stand',note:'IGMR 132: durante a aclamação, o sacerdote põe incenso no turíbulo, se for usado.'})]:[]),
@@ -198,17 +198,18 @@ function build(){
  {ph:'Profissão de fé',at:'cadeira',rub:'Domingo: de volta à cadeira, todos se levantam.',o:['Professar o Credo com o povo','Rezar o Pai-Nosso','Entoar o Santo'],say:false,r:'Creio em Deus Pai todo-poderoso…',g:'joined',pos:'stand'},
  {ph:'Oração universal',rub:'Conduza as preces da comunidade:',o:['Introduzir as preces e concluí-las com uma oração','Dar a bênção final','Começar o ofertório em silêncio'],say:false,r:'Senhor, escutai a nossa prece.',g:'joined',pos:'stand'},
  {ph:'Preparação das oferendas',at:'altar',rub:'Já no altar, tome a patena com o pão, um pouco elevada:',o:['Bendito sejais, Senhor, Deus do universo, pelo pão que recebemos de vossa bondade…','Isto é o meu Corpo…','O Corpo de Cristo.'],r:'Bendito seja Deus para sempre!',g:'offer',pos:'sit'},
+ {ph:'Preparação das oferendas',rub:'Depois de pôr o vinho e um pouco de água no cálice, eleve-o um pouco sobre o altar:',o:['Bendito sejais, Senhor, Deus do universo, pelo vinho que recebemos de vossa bondade…','Este é o cálice do meu Sangue…','O Sangue de Cristo.'],r:'Bendito seja Deus para sempre!',g:'holdChalice',pos:'sit'},
  ...(cfg.inc==='1'?[{ph:'Preparação das oferendas',rub:'O turiferário se aproxima. Depois de pôr o incenso:',o:['Incensar as oferendas, a cruz e o altar','Incensar só o povo','Passar direto ao lavabo'],say:false,pa:'incAltar',paDur:10.5,g:'joined',pos:'sit',note:'Em seguida, o turiferário incensa você e o povo.'}]:[]),
  ...(M?[mc({ph:'Preparação das oferendas',mcAct:'Indica aos coroinhas: jarra, bacia e manustérgio',rub:'O padre terminou de preparar as oferendas. O que você indica?',o:['Coroinhas com jarra, bacia e manustérgio para o lavabo','Turiferário para incensar o povo de novo','Sineta para a consagração'],g:'joined',pos:'sit',note:'IGMR 145: o sacerdote lava as mãos ao lado do altar.'})]:[]),
  {ph:'Preparação das oferendas',at:'lav',pa:'lav',rub:'Vá ao lado do altar. Os coroinhas trazem a jarra e a bacia.',o:['Lavar as mãos, rezando em silêncio','Abençoar a assembleia','Ir para a cadeira'],say:false,g:'joined',pos:'sit'},
- ...(M?[mc({ph:'Preparação das oferendas',bringMissal:1,mcAct:'Manda levar o Missal ao altar',rub:'O padre vai voltar ao centro do altar. O que você providencia?',o:['Levar o Missal ao altar, aberto na oração sobre as oferendas','Deixar o Missal na credência','Levar o Lecionário ao altar'],g:'joined',pos:'sit',note:'Para a oração sobre as oferendas e a Oração Eucarística, o padre reza pelo Missal no altar.'})]:[]),
+ ...(M?[mc({ph:'Preparação das oferendas',bringMissal:1,mcAct:'Leva o Missal ao altar',rub:'O padre vai voltar ao centro do altar. O que você providencia?',o:['Levar o Missal ao altar, aberto na oração sobre as oferendas','Deixar o Missal na credência','Levar o Lecionário ao altar'],g:'joined',pos:'sit',note:'Para a oração sobre as oferendas e a Oração Eucarística, o padre reza pelo Missal no altar.'})]:[]),
  {ph:'Preparação das oferendas',at:'altar',face:'povo',rub:'Convide o povo a rezar com você:',o:['Orai, irmãos e irmãs, para que o meu e o vosso sacrifício seja aceito por Deus Pai todo-poderoso.','Corações ao alto.','Oremos.'],r:'Receba o Senhor por tuas mãos este sacrifício, para glória do seu nome, para nosso bem e de toda a santa Igreja.',g:'orans',pos:'stand'},
  {ph:'Preparação das oferendas',bringMissal:1,face:'altar',rub:'O coroinha leva o Missal ao altar. De braços abertos:',o:['Rezar a oração sobre as oferendas','Dizer: Ide em paz','Começar o Pai-Nosso'],say:false,r:'Amém.',g:'orans',pos:'stand'},
  {ph:'Prefácio',face:'altar',rub:'Hoje é '+Dy.n+(e===4?', com a Oração Eucarística IV':'')+'. Qual prefácio?',o:pref.o,say:false,g:'joined',pos:'stand',note:pref.note},
  {ph:'Diálogo do prefácio',face:'altar',rub:'Abrindo os braços:',o:[T('Dominus vobiscum.','O Senhor esteja convosco.'),T('Ite, missa est.','Ide em paz.'),T('Oremus.','Oremos.')],r:T('Et cum spiritu tuo.','Ele está no meio de nós.'),g:'orans',pos:'stand'},
  {ph:'Diálogo do prefácio',face:'altar',rub:'Elevando as mãos:',o:[T('Sursum corda.','Corações ao alto.'),T('Mysterium fidei.','Eis o mistério da fé!'),T('Pax Domini sit semper vobiscum.','A paz do Senhor esteja sempre convosco.')],r:T('Habemus ad Dominum.','O nosso coração está em Deus.'),g:'orans',pos:'stand'},
  {ph:'Diálogo do prefácio',face:'altar',rub:'Continue:',o:[T('Gratias agamus Domino Deo nostro.','Demos graças ao Senhor, nosso Deus.'),T('Benedicat vos omnipotens Deus.','Abençoe-vos Deus todo-poderoso.'),T('Per ipsum, et cum ipso…','Por Cristo, com Cristo…')],r:T('Dignum et iustum est.','É nosso dever e nossa salvação.'),g:'orans',pos:'stand'},
- ...(M&&INX?[mc({ph:'Prefácio',thrStart:1,mcAct:'Faz sinal ao turiferário',rub:'O prefácio está terminando. O que você faz?',o:['Fazer sinal ao turiferário para vir com o turíbulo para a consagração','Mandar os coroinhas buscarem as galhetas','Encerrar a incensação da Missa'],g:'orans',pos:'stand',note:'IGMR 150: se houver incenso, o ministro incensa a hóstia e o cálice quando são mostrados ao povo.'})]:[]),
+ ...(M&&INX?[mc({ph:'Prefácio',thrStart:1,mcAct:'Vai com o turíbulo para diante do altar',rub:'O prefácio está terminando. O que você faz?',o:['Ir com o turíbulo para diante do altar, para a consagração','Mandar os coroinhas buscarem as galhetas','Encerrar a incensação da Missa'],g:'orans',pos:'stand',note:'IGMR 150: se houver incenso, o ministro incensa a hóstia e o cálice quando são mostrados ao povo.'})]:[]),
  {ph:'Santo',face:'altar',rub:'Terminado o prefácio, de mãos juntas:',o:['Cantar o Santo com o povo','Elevar a hóstia','Dar a paz'],say:false,r:T('Sanctus, Sanctus, Sanctus Dominus Deus Sabaoth…','Santo, Santo, Santo, Senhor, Deus do universo…'),g:'joined',pos:'kneel'},
  ...pre,
  ...(M?[mc({ph:'Antes da consagração',bell:1,mcAct:'Toca a sineta',rub:'Pouco antes da consagração. O que você faz?',o:['Tocar a sineta para chamar a atenção do povo','Mandar trazer o lavabo','Recolher o Missal do altar'],g:'extend',pos:'kneel',note:'IGMR 150: pouco antes da consagração, o ministro pode tocar a sineta, e também em cada elevação.'})]:[]),
@@ -227,9 +228,9 @@ function build(){
  {ph:'Comunhão',face:'povo',rub:'Mostrando a hóstia ao povo:',o:['Felizes os convidados para a Ceia do Senhor. Eis o Cordeiro de Deus, que tira o pecado do mundo.','Eis o mistério da fé!','Palavra da Salvação.'],r:'Senhor, eu não sou digno de que entreis em minha morada, mas dizei uma palavra e serei salvo.',g:'elevHost',pos:'stand'},
  {read:1,silent:1,ph:'Comunhão do sacerdote',face:'altar',rub:'Em silêncio, você comunga o Corpo e o Sangue de Cristo.',o:[''],g:'consume',g2:'drink',pos:'stand'},
  {ph:'Comunhão',face:'povo',rub:'Agora, a cada fiel que se aproxima:',o:['O Corpo de Cristo.','Isto é o meu Corpo.','Ide em paz.'],r:'Amém.',g:'holdHost',pos:'stand'},
- ...(M?[mc({ph:'Comunhão',mcAct:'Manda trazer a água e o sanguíneo',rub:'Todos comungaram. O que você providencia?',o:['A galheta com água e o sanguíneo para a purificação','Tocar a sineta','Trazer o turíbulo'],g:'joined',pos:'sit',note:'IGMR 163 e 279: os vasos sagrados são purificados no altar ou na credência.'})]:[]),
+ ...(M?[mc({ph:'Comunhão',mcAct:'Leva a água e o sanguíneo',rub:'Todos comungaram. O que você providencia?',o:['A galheta com água e o sanguíneo para a purificação','Tocar a sineta','Trazer o turíbulo'],g:'joined',pos:'sit',note:'IGMR 163 e 279: os vasos sagrados são purificados no altar ou na credência.'})]:[]),
  {ph:'Purificação',rub:'Todos comungaram. E agora?',o:['Purificar a patena e o cálice e levá-los à credência','Deixar tudo sobre o altar até o fim da Missa','Abençoar o povo com o cálice'],say:false,clear:1,g:'joined',pos:'sit'},
- ...(M?[mc({ph:'Depois da comunhão',mcAct:'Manda levar o Missal à cadeira',rub:'O padre vai à cadeira para a oração depois da comunhão. O que você providencia?',o:['Mandar o coroinha levar o Missal até a cadeira','Deixar o Missal no altar','Levar o Lecionário'],g:'joined',pos:'sit',note:'IGMR 165: a oração depois da comunhão é dita da cadeira ou do altar.'})]:[]),
+ ...(M?[mc({ph:'Depois da comunhão',mcAct:'Leva o Missal até a cadeira',rub:'O padre vai à cadeira para a oração depois da comunhão. O que você providencia?',o:['Levar o Missal até a cadeira e segurá-lo para o padre','Deixar o Missal no altar','Levar o Lecionário'],g:'joined',pos:'sit',note:'IGMR 165: a oração depois da comunhão é dita da cadeira ou do altar.'})]:[]),
  {ph:'Depois da comunhão',at:'cadeira',holdBook:1,rub:'De volta à cadeira, após um momento de silêncio, de pé:',o:['Oremos. (oração depois da comunhão)','Corações ao alto.','Em nome do Pai…'],r:'Amém.',g:'orans',pos:'stand'},
  {ph:'Ritos finais',face:'povo',rub:'Abençoe o povo:',o:['O Senhor esteja convosco. — Abençoe-vos Deus todo-poderoso, Pai e Filho e Espírito Santo.','Em nome do Pai e do Filho e do Espírito Santo.','Por Cristo, com Cristo…'],r:'Amém.',g:'sign',pos:'stand'},
  {ph:'Ritos finais',face:'povo',rub:'Despeça a assembleia:',o:['Ide em paz, e o Senhor vos acompanhe.','Oremos.','O Senhor esteja convosco.'],r:'Graças a Deus.',g:'joined',pos:'stand'},
@@ -255,7 +256,7 @@ function setup(){
  say(pb);say(vb);say(mb);lastSay='';st.playing=false;st.i=-1;st.at='sac';st.color=null;st.psit=false;st.lector=false;st.facing='povo';st.g='joined';st.pos='sit';st.gifts=false;hud();
  const grp=(t,k,opts)=>`<div class="grp"><h3>${t}</h3><div class="chips">${opts.map(([v,l])=>`<button class="chip" data-k="${k}" data-v="${v}" aria-pressed="${String(cfg[k])===String(v)}">${l}</button>`).join('')}</div></div>`;
  panel.className='dlg wide';st.servers=false;st.proc=0;st.pa=null;SMK.length=0;SP.forEach((p,n)=>Object.assign(p,HOME[n]));Object.assign(TH,THH);
- panel.innerHTML=`<p class="big">Simulador de Missa</p><p class="rub">Na sacristia: escolha como vai celebrar este domingo do Tempo Comum.</p><div class="setup">
+ panel.innerHTML=`<p class="big">Simulador de Missa</p><p class="rub">Na sacristia: escolha como vai celebrar.</p><div class="setup">
  ${grp('Oração Eucarística','ep',[[1,'I · Cânon Romano'],[2,'II'],[3,'III'],[4,'IV']])}
  ${grp('Idioma da Liturgia Eucarística','lang',[['la','Latim'],['pt','Português']])}
  ${grp('Orientação no altar','ori',[['ao','Ad orientem'],['vp','Versus populum']])}
@@ -267,7 +268,7 @@ function setup(){
  panel.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k;cfg[k]=k==='ep'?+b.dataset.v:b.dataset.v;panel.querySelectorAll(`.chip[data-k="${k}"]`).forEach(x=>x.setAttribute('aria-pressed',x===b));});
  document.getElementById('go').onclick=start;
 }
-function start(){audio();st.lavDone=false;st.book=false;st.missalPlaced=false;SP.forEach(p=>{p.has=false;p.mis=false;});st.day=DAYS[Math.random()*DAYS.length|0];st.color=null;st.at='sac';st.steps=build();st.i=0;st.score=0;st.streak=0;st.mist=0;st.mistM=0;st.okM=0;st.pausas=0;st.playing=true;st.pos='stand';show();}
+function start(){audio();Object.assign(MCA,MCP);MCA.mis=false;st.lavDone=false;st.book=false;st.missalPlaced=false;SP.forEach(p=>{p.has=false;p.mis=false;});st.day=DAYS[Math.random()*DAYS.length|0];st.color=null;st.at='sac';st.steps=build();st.i=0;st.score=0;st.streak=0;st.mist=0;st.mistM=0;st.okM=0;st.pausas=0;st.playing=true;st.pos='stand';show();}
 
 function show(){
  const s=st.steps[st.i];st.first=true;st.wait=true;
@@ -353,7 +354,7 @@ function sfx(kind){if(!audio())return;const t=ac.currentTime;
  if(kind==='bad'){tone(52,t,.12,'square',.08);tone(47,t+.12,.2,'square',.08);}
  if(kind==='turn')tone(84,t,.05,'square',.05);
  if(kind==='end')[74,78,81,86,0,81,86].forEach((m,j)=>m&&tone(m,t+j*.13,.12,'square',.08));}
-function bell(){if(!audio())return;const t0=ac.currentTime;[0,.22,.44].forEach(d=>{tone(96,t0+d,.18,'square',.05);tone(103,t0+d,.12,'square',.025);tone(91,t0+d+.02,.3,'triangle',.08);});}
+function bell(){if(!audio())return;const t0=ac.currentTime;[0,.18,.36,.54].forEach(d=>{tone(96,t0+d,.2,'square',.11);tone(103,t0+d,.14,'square',.05);tone(91,t0+d+.02,.35,'triangle',.16);});st.bellT=performance.now();}
 musB.onclick=()=>{musicOn=!musicOn;musB.setAttribute('aria-pressed',musicOn);try{localStorage.setItem('missa8-mus',musicOn?'1':'0');}catch(_){}audio();music();};
 
 /* ---------- desenho ---------- */
@@ -401,7 +402,7 @@ function scene(t){
  cx.fillStyle='#7a644e';cx.fillRect(250,376,460,6);cx.fillRect(220,404,520,6);
  // cadeira e ambão
  cx.fillStyle='#5a3620';cx.fillRect(632,358,4,40);cx.fillRect(666,358,4,40);cx.fillRect(628,352,46,7);cx.fillStyle='#f3e7c8';cx.fillRect(626,348,50,6);cx.fillRect(626,348,4,16);cx.fillRect(672,348,4,16);
- if(!SP[1].mis&&!st.missalPlaced){cx.fillStyle='#b3121f';cx.fillRect(628,342,10,6);cx.fillStyle='#d9b448';cx.fillRect(628,341,10,1);}cx.fillStyle='#c8bfae';cx.fillRect(641,340,5,8);{if(!(SP[1].has||SP[2].has)){cx.fillRect(652,334,9,14);cx.beginPath();cx.ellipse(667,346,8,2.5,0,0,7);cx.fill();}}
+ if(!SP[1].mis&&!MCA.mis&&!st.missalPlaced){cx.fillStyle='#b3121f';cx.fillRect(628,342,10,6);cx.fillStyle='#d9b448';cx.fillRect(628,341,10,1);}cx.fillStyle='#c8bfae';cx.fillRect(641,340,5,8);{if(!(SP[1].has||SP[2].has)){cx.fillRect(652,334,9,14);cx.beginPath();cx.ellipse(667,346,8,2.5,0,0,7);cx.fill();}}
  cx.fillStyle='#120c10';cx.beginPath();cx.moveTo(8,398);cx.lineTo(8,300);cx.arc(42,300,34,Math.PI,0);cx.lineTo(76,398);cx.fill();cx.strokeStyle='#8a5a34';cx.lineWidth=4;cx.stroke();
  cx.fillStyle='#5a3620';rr(136,276,58,120,6);cx.fill();cx.fillStyle='#8e1a22';rr(144,288,42,66,4);cx.fill();
 
@@ -526,7 +527,7 @@ function procAt(){const t=st.proc?(performance.now()-st.proc)/1000:99,dT=INC()?.
  if(t<pA)p=pa;else if(t<pA+1.5){p=go(pa,F,pA,.6);bw=t>pA+.65&&t<pA+1.35?1:0;walk=t<pA+.6;}
  else if(INC()){p=F;walk=false;}else{p=go(F,POS.cadeira,pA+1.5,1.8);bk=false;walk=t<pA+3.3;}
  if(t>=procT()&&st.proc){st.proc=0;const at=INC()?'frente':'cadeira';st.at=at;P.x=POS[at].x;P.y=POS[at].y;setTimeout(next,0);}
- return{p,back:bk,bow:bw,walk,srv,th:INC()?(t<4?th:go(th,WAIT,4,1.4)):null,t,placed,candles:true,backs:[t<crA+.1,t<cA+.1,t<cA+.1]};}
+ return{p,back:bk,bow:bw,walk,srv,th:INC()?(t<4?th:go(th,cfg.mc==='1'?THH:WAIT,4,1.4)):null,t,placed,candles:true,backs:[t<crA+.1,t<cA+.1,t<cA+.1]};}
 function chore(){const pa=st.pa;if(!pa)return null;const t=(performance.now()-pa.t0)/1000;
  if(pa.k==='incAltar'){if(t>7){if(t>pa.dur)st.pa=null;return null;}const F={x:480,y:405};
   if(t<.8){const q=ease(clamp(t/.8));return{x:lerp(pa.from.x,F.x,q),y:lerp(pa.from.y,F.y,q),back:true,thur:1};}
@@ -546,10 +547,10 @@ function emitAt(c){const p=cx.getTransform().transformPoint(c),x=p.x*W/LW,y=p.y*
  if(SMK.length<200&&Math.random()<.7)SMK.push({x,y,vx:(Math.random()-.5)*.5,vy:-.5-Math.random()*.5,r:4+Math.random()*3,l:1});}
 function smoke(){cx.save();for(let i=SMK.length-1;i>=0;i--){const p=SMK[i];p.x+=p.vx;p.y+=p.vy;p.r+=.07;p.l-=reduce?.03:.007;
  if(p.l<=0){SMK.splice(i,1);continue;}cx.fillStyle=`rgba(226,222,236,${p.l*.5})`;cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fill();}cx.restore();}
-function server(o,it,back,kneel,t,swing,pour){
- cx.save();cx.translate(o.x,o.y+(kneel?12:0));cx.scale(.8,.8);
+function server(o,it,back,kneel,t,swing,pour,isMc){
+ cx.save();cx.translate(o.x,o.y+(kneel?12:0));cx.scale(isMc?.9:.8,isMc?.9:.8);
  if(it==='thur'&&back){const c=censer(8,-96,swing?.6:.12,t);if(swing||Math.random()<.2)emitAt({x:c.x,y:-130});}
- cx.fillStyle='#c8202c';cx.beginPath();cx.moveTo(-16,-100);cx.lineTo(-19,0);cx.lineTo(19,0);cx.lineTo(16,-100);cx.fill();
+ cx.fillStyle=isMc?'#1d1a2b':'#c8202c';cx.beginPath();cx.moveTo(-16,-100);cx.lineTo(-19,0);cx.lineTo(19,0);cx.lineTo(16,-100);cx.fill();
  cx.fillStyle='#140f1c';cx.fillRect(-13,-4,11,4);cx.fillRect(2,-4,11,4);
  cx.fillStyle='#f3efe6';cx.beginPath();cx.moveTo(-18,-106);cx.lineTo(-25,-56);cx.lineTo(25,-56);cx.lineTo(18,-106);cx.fill();
  cx.fillStyle='#c8bfae';for(let x=-22;x<22;x+=6)cx.fillRect(x,-61,3,3);
@@ -559,6 +560,7 @@ function server(o,it,back,kneel,t,swing,pour){
   const gg=cx.createRadialGradient(0,-176,1,0,-176,22);gg.addColorStop(0,'#ffd27a66');gg.addColorStop(1,'#ffd27a00');cx.fillStyle=gg;cx.fillRect(-22,-198,44,44);
   cx.fillStyle='#ffcf5a';cx.beginPath();cx.ellipse(0,-176,4,8*(reduce?1:1+Math.sin(t/130)*.15),0,0,7);cx.fill();}
  if(it==='jug'){hl=[-16,-100];hr=[-8,-96];cx.save();cx.translate(-14,-102);cx.rotate(pour?-1.1:0);cx.fillStyle='#c8bfae';cx.fillRect(-6,-14,12,18);cx.fillRect(-9,-14,5,4);cx.fillStyle='#ffffff';cx.fillRect(-4,-12,3,14);cx.restore();}
+ if(it==='bell'){const a=swing?Math.sin(performance.now()/45)*.6:0;cx.save();cx.translate(12,-90);cx.rotate(a);cx.fillStyle='#d9b448';cx.beginPath();cx.moveTo(-6,10);cx.lineTo(-4,0);cx.lineTo(4,0);cx.lineTo(6,10);cx.closePath();cx.fill();cx.fillRect(-1,-8,2,8);cx.restore();}
  if(it==='missal'){hl=[-10,-88];hr=[4,-88];cx.fillStyle='#b3121f';cx.fillRect(-12,-104,18,22);cx.fillStyle='#d9b448';cx.fillRect(-4,-100,2,12);cx.fillRect(-7,-96,8,2);cx.fillStyle='#f3e7c8';cx.fillRect(5,-102,2,18);}
  if(it==='missalOpen'){hl=[-36,-104];hr=[-6,-104];cx.fillStyle='#b3121f';cx.fillRect(-38,-108,34,4);cx.fillStyle='#ffffff';cx.fillRect(-37,-124,15,17);cx.fillRect(-21,-124,15,17);cx.fillStyle='#8a8a9a';for(let y=-120;y<-110;y+=4){cx.fillRect(-35,y,11,1.5);cx.fillRect(-19,y,11,1.5);}cx.fillStyle='#b3121f';cx.fillRect(-22,-124,1.5,17);}
  if(it==='basin'){hl=[-24,-90];hr=[-4,-90];cx.fillStyle='#c8bfae';cx.beginPath();cx.ellipse(-14,-92,17,6,0,0,7);cx.fill();cx.fillStyle='#5fa0e8';cx.beginPath();cx.ellipse(-14,-94,12,3,0,0,7);cx.fill();cx.fillStyle='#f3e7c8';cx.fillRect(2,-92,6,20);}
@@ -574,7 +576,7 @@ function servers(t){if(!st.servers)return;const now=performance.now();
  if(st.proc){const ps=procAt();if(ps.placed)crossStand();
   ps.srv.forEach((o,n)=>{Object.assign(SP[n],o);server(o,n===0?(ps.placed?null:'cross'):'candle',ps.backs[n],false,t);});
   if(ps.th){Object.assign(TH,ps.th);server(ps.th,'thur',ps.t<4.1,false,t);}return;}
- crossStand();
+ crossStand();const MCM=cfg.mc==='1';
  const cur=st.playing&&st.steps[st.i]||{},k=reduce?1:.06,lt=lavT(),lavStep=cur.pa==='lav',bob=()=>reduce?0:-Math.abs(Math.sin(now/110))*3;
  const away=(p,h)=>Math.hypot(p.x-h.x,p.y-h.y)>8;
  if(lt>3.6)st.lavDone=true;
@@ -584,12 +586,24 @@ function servers(t){if(!st.servers)return;const now=performance.now();
  const pour=lt>1.4&&lt<3.6;
  for(const n of [1,2]){const p=SP[n],near=q=>Math.hypot(p.x-q.x,p.y-q.y)<6;let tg=lavStep?((lt>-.4&&lt<3.9)?STA[n]:CRED[n]):HOME[n];
   if(lavStep&&near(CRED[n]))p.has=!st.lavDone;
-  if(n===1&&cur.bringMissal&&!st.missalPlaced){if(!p.mis){tg=CRED[1];if(near(CRED[1]))p.mis=true;}else{tg=ALT;if(near(ALT)){p.mis=false;st.missalPlaced=true;}}}
-  else if(n===1&&(st.book||p.mis)){tg=CRED[1];if(near(CRED[1]))p.mis=st.book;if(st.book&&p.mis)tg=BOOK;}
+  if(n===1&&!MCM&&cur.bringMissal&&!st.missalPlaced){if(!p.mis){tg=CRED[1];if(near(CRED[1]))p.mis=true;}else{tg=ALT;if(near(ALT)){p.mis=false;st.missalPlaced=true;}}}
+  else if(n===1&&!MCM&&(st.book||p.mis)){tg=CRED[1];if(near(CRED[1]))p.mis=st.book;if(st.book&&p.mis)tg=BOOK;}
   const item=p.has?(n===1?'jug':'basin'):p.mis?(st.book&&near(BOOK)?'missalOpen':'missal'):null;
   step(p,tg,n,item,false,false,false,pour&&n===1);}
  if(pour){cx.fillStyle='#5fa0e8';for(let i=0;i<5;i++){const f=((now/400)+i/5)%1;cx.fillRect(lerp(626,618,f),lerp(318,338,f),3,4);}}
- if(INC()){const pa=st.pa,q=pa?(now-pa.t0)/1000:0,has=pa&&(pa.k==='incAltar'&&q<7||pa.k==='incBook');let tt=THH,sw=false,kn=false;
+ if(MCM&&st.playing){const pa=st.pa,q=pa?(now-pa.t0)/1000:0,near=z=>Math.hypot(MCA.x-z.x,MCA.y-z.y)<6;let tg=MCP,item=null,bk=false,kn=st.pos==='kneel',sw=false;
+  if(INC()){const has=pa&&(pa.k==='incAltar'&&q<7||pa.k==='incBook');let tt=null;
+   if(cur.pa==='incAltar'||(pa&&pa.k==='incAltar'))tt=WAIT;
+   if(cur.pa==='incBook'||(pa&&pa.k==='incBook'))tt={x:700,y:414};
+   if(pa&&pa.k==='incAltar'&&pa.dur>7&&q>7.2){tt={x:520,y:436};sw=q>7.9;}
+   if(cur.thr){tt={x:590,y:432};bk=true;sw=st.g==='elevHost'||st.g==='elevChalice';}
+   if(tt){tg=tt;item=has?null:'thur';}}
+  if(!INC()&&cur.thr){tg={x:590,y:432};bk=true;item='bell';sw=performance.now()-(st.bellT||0)<1200;}
+  if(cur.bringMissal&&!st.missalPlaced){if(!MCA.mis){tg=CRED[1];if(near(CRED[1]))MCA.mis=true;}else{tg=ALT;if(near(ALT)){MCA.mis=false;st.missalPlaced=true;}}item=MCA.mis?'missal':null;bk=false;}
+  else if(st.book||MCA.mis){tg=CRED[1];if(near(CRED[1]))MCA.mis=st.book;if(st.book&&MCA.mis)tg=BOOK;item=MCA.mis?(st.book&&near(BOOK)?'missalOpen':'missal'):null;bk=false;}
+  const d=Math.hypot(tg.x-MCA.x,tg.y-MCA.y);MCA.x+=(tg.x-MCA.x)*k;MCA.y+=(tg.y-MCA.y)*k;
+  Object.assign(MCS,{item,bk,kn,sw,mv:d>3});}
+ if(INC()&&!MCM){const pa=st.pa,q=pa?(now-pa.t0)/1000:0,has=pa&&(pa.k==='incAltar'&&q<7||pa.k==='incBook');let tt=THH,sw=false,kn=false;
   if(cur.pa==='incAltar'||(pa&&pa.k==='incAltar'))tt=WAIT;
   if(cur.pa==='incBook'||(pa&&pa.k==='incBook'))tt={x:700,y:414};
   if(pa&&pa.k==='incAltar'&&pa.dur>7&&q>7.2){tt={x:520,y:436};sw=q>7.9;}
@@ -597,19 +611,9 @@ function servers(t){if(!st.servers)return;const now=performance.now();
   step(TH,tt,-1,has?null:'thur',bk,kn,sw);}
 }
 const MCP={x:740,y:404};
-function mcer(t){if(cfg.mc!=='1'||!st.playing||st.proc)return;const pt=performance.now()-(st.mcPoint||0)<1600,kn=st.pos==='kneel';
- cx.save();cx.translate(MCP.x,MCP.y+(kn?12:0));cx.scale(.9,.9);
- cx.fillStyle='#1d1a2b';cx.beginPath();cx.moveTo(-16,-104);cx.lineTo(-19,0);cx.lineTo(19,0);cx.lineTo(16,-104);cx.fill();
- cx.fillStyle='#140f1c';cx.fillRect(-13,-4,11,4);cx.fillRect(2,-4,11,4);
- cx.fillStyle='#f3efe6';cx.beginPath();cx.moveTo(-18,-108);cx.lineTo(-26,-54);cx.lineTo(26,-54);cx.lineTo(18,-108);cx.fill();
- cx.fillStyle='#c8bfae';for(let x=-23;x<23;x+=6)cx.fillRect(x,-59,3,3);
- cx.strokeStyle='#f3efe6';cx.lineWidth=8;cx.lineCap='round';cx.beginPath();
- if(pt){cx.moveTo(-15,-102);cx.lineTo(-44,-118);cx.moveTo(15,-102);cx.lineTo(10,-82);}else{cx.moveTo(-15,-102);cx.lineTo(-6,-84);cx.moveTo(15,-102);cx.lineTo(6,-84);}cx.stroke();
- cx.fillStyle='#e2b48f';cx.beginPath();if(pt){cx.arc(-46,-119,4.5,0,7);cx.arc(10,-82,4.5,0,7);}else{cx.arc(-3,-83,4.5,0,7);cx.arc(3,-83,4.5,0,7);}cx.fill();
- cx.fillStyle='#e2b48f';cx.beginPath();cx.arc(0,-122,12,0,7);cx.fill();
- cx.fillStyle='#1d1a2b';cx.beginPath();cx.arc(0,-126,12.5,Math.PI*1.05,Math.PI*1.95);cx.fill();
- cx.fillStyle='#2a1d14';cx.fillRect(-5,-123,2.5,2.5);cx.fillRect(3,-123,2.5,2.5);
- cx.restore();}
+const MCA={...MCP},MCS={item:null,bk:false,kn:false,sw:false,mv:false};
+function mcer(t){if(cfg.mc!=='1'||!st.playing||st.proc)return;const b=MCS.mv&&!reduce?-Math.abs(Math.sin(performance.now()/110))*3:0;
+ server({x:MCA.x,y:MCA.y+b},MCS.item,MCS.bk,MCS.kn,t,MCS.sw,false,true);}
 const LR={x:1010,y:384};
 function lector(){
  const tx=st.lector?796:1010;LR.x+=(tx-LR.x)*(reduce?1:.035);if(LR.x>995)return;
@@ -645,7 +649,7 @@ function sprite(fn,t){const m=cx;
  m.save();m.setTransform(1,0,0,1,0,0);for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])m.drawImage(sc,dx,dy);m.drawImage(pc,0,0);m.restore();
 }
 function placeBubble(){if(!vb.hidden){const ov=getComputedStyle(panel).position==='absolute',right=P.x<480;vb.style.left=right?'auto':'4%';vb.style.right=right?'4%':'auto';if(ov){vb.style.bottom='auto';vb.style.top=Math.max(40,panel.offsetTop-vb.offsetHeight-16)+'px';}else{vb.style.top='';vb.style.bottom='';}}
- if(!mb.hidden){mb.style.left=(MCP.x/W*100)+'%';mb.style.top=Math.max(14,(MCP.y-CAM-150)/H*100)+'%';}
+ if(!mb.hidden){mb.style.left=Math.min(80,MCA.x/W*100)+'%';mb.style.top=Math.max(14,(MCA.y-CAM-150)/H*100)+'%';}
  if(pb.hidden)return;const x=Math.min(76,Math.max(24,P.x/W*100)),y=(P.y-CAM-(st.g.startsWith('elev')?178:150)*P.s)/H*100;pb.style.left=x+'%';pb.style.top=Math.max(18,y)+'%';}
 function frame(t){
  {const nx=document.getElementById('next');if(nx&&nx.disabled&&!st.pa){nx.disabled=false;nx.textContent=nx.dataset.l;}}
